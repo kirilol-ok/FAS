@@ -1,21 +1,55 @@
+# backend/databases/db.py
+from pathlib import Path
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from backend.models.base import Base
 
-DATABASE_URL = "sqlite:///./databases/app.db"
+from backend.models.base import CoreBase, LogBase
 
-engine = create_engine(
-    DATABASE_URL,
-    echo=True,
+SQLITE_URL = f"sqlite:///./backend/databases/app.db"
+
+# PostgreSQL (użytkownicy, role, uprawnienia, profile twarzy itd.)
+# Zmień na swoje dane dostępu
+POSTGRES_URL = (
+    "postgresql+psycopg2://user:password@localhost:5432/your_db_name"
 )
 
-SessionLocal = sessionmaker(
+# --- Silniki ---
+
+sqlite_engine = create_engine(
+    SQLITE_URL,
+    echo=True,
+    future=True,
+)
+
+postgres_engine = create_engine(
+    POSTGRES_URL,
+    echo=True,
+    future=True,
+)
+
+SQLiteSessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
-    bind=engine,
+    bind=sqlite_engine,
 )
 
-def init_db():
-    from backend.models import administrator, pracownik, raport
+PostgresSessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=postgres_engine,
+)
 
-    Base.metadata.create_all(bind=engine)
+def init_sqlite_db() -> None:
+    from backend.models import reports
+    LogBase.metadata.create_all(bind=sqlite_engine)
+
+
+def init_postgres_db() -> None:
+    from backend.models import employees, admins
+    CoreBase.metadata.create_all(bind=postgres_engine)
+
+
+def init_all_db() -> None:
+    init_sqlite_db()
+    init_postgres_db()

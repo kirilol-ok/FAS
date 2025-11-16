@@ -1,56 +1,45 @@
-# tests/test_db_init.py
-from datetime import datetime, timedelta
+# backend/tests/test_db_init.py
+from datetime import timedelta
 
 from sqlalchemy import inspect
 
-from ..databases.db import engine, SessionLocal, init_db
-from ..models.raport import Raporty
+from backend.databases.db import sqlite_engine, SQLiteSessionLocal, init_sqlite_db
+from backend.models.reports import Reports
 
 
-def test_tables_are_created():
+def test_tables_are_created_sqlite():
     """
-    Sprawdza, czy po wywołaniu init_db() w bazie istnieją wymagane tabele.
+    Sprawdza, czy po wywołaniu init_sqlite_db()
+    tabela 'reports' istnieje w bazie SQLite.
     """
-    init_db()
+    init_sqlite_db()
 
-    inspector = inspect(engine)
+    inspector = inspect(sqlite_engine)
     table_names = inspector.get_table_names()
 
-    assert "Raporty" in table_names
+    assert "Reports" in table_names
 
 
-def test_tables_are_created():
+def test_create_report_and_defaults_sqlite():
     """
-    Sprawdza, czy po wywołaniu init_db() w bazie istnieją wymagane tabele.
+    Sprawdza, czy w bazie logów (SQLite) można utworzyć Report
+    i czy poprawnie ustawiają się daty: created_at i retention_until.
     """
-    init_db()
+    init_sqlite_db()
 
-    inspector = inspect(engine)
-    table_names = inspector.get_table_names()
-
-    assert "Raporty" in table_names
-
-
-def test_create_raport_and_defaults():
-    """
-    Sprawdza, czy można utworzyć Raport i czy poprawnie ustawiają się daty.
-    """
-    init_db()
-
-    db = SessionLocal()
+    db = SQLiteSessionLocal()
     try:
-        raport = Raporty()
-        db.add(raport)
+        report = Reports(employee_id=1)
+        db.add(report)
         db.commit()
-        db.refresh(raport)
+        db.refresh(report)
 
-        assert raport.id is not None
-        assert raport.utworzono is not None
-        assert raport.retencja_do is not None
-        assert raport.retencja_do > raport.utworzono
+        assert report.id is not None
+        assert report.created_at is not None
+        assert report.retention_until is not None
+        assert report.retention_until > report.created_at
 
-        diff = raport.retencja_do - raport.utworzono
+        diff = report.retention_until - report.created_at
         assert timedelta(days=150) <= diff <= timedelta(days=210)
     finally:
         db.close()
-
