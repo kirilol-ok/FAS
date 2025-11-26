@@ -1,0 +1,22 @@
+{
+  "name": "FAS Backend Dev",
+  "dockerComposeFile": "../docker-compose.yml",
+  "service": "backend",
+  "workspaceFolder": "/app/backend",
+
+  "extensions": [
+    "ms-python.python",
+    "ms-python.vscode-pylance"
+  ],
+
+  "runServices": [
+    "backend",
+    "postgres",
+    "frontend"
+  ],
+
+  "shutdownAction": "stopCompose",
+  "overrideCommand": false,
+  "remoteUser": "root"
+  
+}
