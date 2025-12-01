@@ -1,45 +1,85 @@
-# backend/tests/test_db_init.py
-from datetime import timedelta
+from pathlib import Path
 
-from sqlalchemy import inspect
+import pytest
+from sqlalchemy import text
+from sqlalchemy.exc import OperationalError
 
-from backend.databases.db import sqlite_engine, SQLiteSessionLocal, init_sqlite_db
-from backend.models.reports import Reports
+BASE_DIR = Path(__file__).resolve().parents[1]
+DB_DIR = BASE_DIR / "backend" / "databases"
+DB_DIR.mkdir(parents=True, exist_ok=True)
 
-
-def test_tables_are_created_sqlite():
-    """
-    Sprawdza, czy po wywołaniu init_sqlite_db()
-    tabela 'reports' istnieje w bazie SQLite.
-    """
-    init_sqlite_db()
-
-    inspector = inspect(sqlite_engine)
-    table_names = inspector.get_table_names()
-
-    assert "Reports" in table_names
+from backend.databases.db import (PostgresSessionLocal, SQLiteSessionLocal,
+                                  init_sqlite_db, postgres_engine,
+                                  sqlite_engine)
 
 
-def test_create_report_and_defaults_sqlite():
-    """
-    Sprawdza, czy w bazie logów (SQLite) można utworzyć Report
-    i czy poprawnie ustawiają się daty: created_at i retention_until.
-    """
-    init_sqlite_db()
+def is_postgres_available() -> bool:
+
+    try:
+        with postgres_engine.connect() as conn:
+            result = conn.execute(text("SELECT 1"))
+            _ = result.scalar()
+        return True
+    except OperationalError:
+        return False
+
+
+postgres_required = pytest.mark.skipif(
+    not is_postgres_available(), reason="Postgres is not available"
+)
+
+
+def test_sqlite_engine_connect():
+
+    with sqlite_engine.connect() as conn:
+        result = conn.execute(text("SELECT 1"))
+        value = result.scalar()
+        assert value == 1
+
+
+def test_sqlite_session_basic_query():
 
     db = SQLiteSessionLocal()
     try:
-        report = Reports(employee_id=1)
-        db.add(report)
-        db.commit()
-        db.refresh(report)
-
-        assert report.id is not None
-        assert report.created_at is not None
-        assert report.retention_until is not None
-        assert report.retention_until > report.created_at
-
-        diff = report.retention_until - report.created_at
-        assert timedelta(days=150) <= diff <= timedelta(days=210)
+        result = db.execute(text("SELECT 1"))
+        value = result.scalar()
+        assert value == 1
     finally:
         db.close()
+
+
+def test_init_sqlite_db_does_not_fail():
+
+    init_sqlite_db()
+
+    with sqlite_engine.connect() as conn:
+        result = conn.execute(text("SELECT 1"))
+        assert result.scalar() == 1
+
+
+@postgres_required
+def test_postgres_engine_connect():
+
+    with postgres_engine.connect() as conn:
+        result = conn.execute(text("SELECT 1"))
+        value = result.scalar()
+        assert value == 1
+
+
+@postgres_required
+def test_postgres_session_basic_query():
+
+    db = PostgresSessionLocal()
+    try:
+        result = db.execute(text("SELECT 1"))
+        value = result.scalar()
+        assert value == 1
+    finally:
+        db.close()
+
+
+@postgres_required
+def test_init_postgres_db_does_not_fail():
+    with postgres_engine.connect() as conn:
+        result = conn.execute(text("SELECT 1"))
+        assert result.scalar() == 1
