@@ -1,0 +1,24 @@
+name: Blokada merge między gałęziami innymi niż main
+
+on:
+  pull_request:
+    branches:
+      - '**'
+
+jobs:
+  block_non_main_to_non_main:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Sprawdź gałęzie źródłową i docelową
+        run: |
+          echo "Base (target) branch: ${{ github.base_ref }}"
+          echo "Head (source) branch: ${{ github.head_ref }}"
+
+          # Jeśli OBIE gałęzie są różne od main → blokujemy merge
+          if [ "${{ github.base_ref }}" != "main" ] && [ "${{ github.head_ref }}" != "main" ]; then
+            echo "❌ Zabronione jest łączenie dwóch gałęzi, które obie nie są 'main'."
+            exit 1
+          fi
+
+          echo "✅ Co najmniej jedna z gałęzi to 'main' – merge dozwolony."
