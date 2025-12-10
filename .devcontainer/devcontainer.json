@@ -4,6 +4,10 @@
   "service": "backend",
   "workspaceFolder": "/app/backend",
 
+  "features": {
+      "ghcr.io/devcontainers/features/git:1": {}
+  },
+
   "extensions": [
     "ms-python.python",
     "ms-python.vscode-pylance"

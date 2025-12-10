@@ -6,12 +6,9 @@ services:
     container_name: backend_dev
     env_file:
       - .env
-    working_dir: /app/backend
+    working_dir: /app
     volumes:
-      - ./backend:/app/backend
-      - ./.git:/app/.git:rw
-      - ./.gitignore:/app/.gitignore:rw
-      - ./.env:/app/.env:rw
+      - ./:/app
     depends_on:
       - postgres
     stdin_open: true
