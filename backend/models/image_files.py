@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, Integer, String, UniqueConstraint
+from sqlalchemy import Column, Integer, String, UniqueConstraint, LargeBinary
 from sqlalchemy.orm import relationship
 
 from .base import CoreBase
@@ -12,6 +12,11 @@ class ImageFiles(CoreBase):
 
     id = Column(Integer, primary_key=True, index=True)
     hash = Column(String(64), nullable=False, index=True)
-    path = Column(String, nullable=False)
+    path = Column(String, nullable=True)
 
-    employees = relationship("Employee", back_populates="image")
+    data = Column(LargeBinary, nullable=False)
+
+    mime_type = Column(String, nullable=False, default="application/octet-stream")
+    size_bytes = Column(Integer, nullable=False, default=0)
+
+    employees = relationship("Employees", back_populates="image")
