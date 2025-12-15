@@ -13,7 +13,7 @@ services:
       - postgres
     stdin_open: true
     tty: true
-    command: bash
+    command: sh -c "uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload & exec bash" 
     ports:
       - "8000:8000"
 
