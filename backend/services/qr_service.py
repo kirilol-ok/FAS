@@ -35,22 +35,22 @@ class CodeDetector:
 
 def decode_qr_from_bytes(image_bytes: bytes) -> Optional[str]:
     """
-    
+    Converts raw bytes (from UploadFile) to an OpenCV image and detects QR.
     """
     try:
-        
+        # Convert bytes to numpy array
         nparr = np.frombuffer(image_bytes, np.uint8)
         
-      
+        # Decode to image format (cv2 image)
         img = cv.imdecode(nparr, cv.IMREAD_COLOR)
         
         if img is None:
             return None
 
-     
+        # Use the CodeDetector class
         detector = CodeDetector()
         return detector.detect_qr(img)
         
     except Exception as e:
-        print(f"Błąd podczas przetwarzania obrazu: {e}")
+        print(f"Error processing image: {e}")
         return None
