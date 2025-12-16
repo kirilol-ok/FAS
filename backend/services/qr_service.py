@@ -32,22 +32,22 @@ class CodeDetector:
             return None, None
         return text, points
 
-# --- NOWA FUNKCJA ŁĄCZĄCA ---
+
 def decode_qr_from_bytes(image_bytes: bytes) -> Optional[str]:
     """
-    Konwertuje surowe bajty (z UploadFile) na obraz OpenCV i wykrywa QR.
+    
     """
     try:
-        # 1. Konwersja bytes -> numpy array
+        
         nparr = np.frombuffer(image_bytes, np.uint8)
         
-        # 2. Dekodowanie do formatu obrazu (cv2 image)
+      
         img = cv.imdecode(nparr, cv.IMREAD_COLOR)
         
         if img is None:
             return None
 
-        # 3. Użycie Twojej klasy CodeDetector
+     
         detector = CodeDetector()
         return detector.detect_qr(img)
         
