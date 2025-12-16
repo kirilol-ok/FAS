@@ -1,5 +1,12 @@
 const API_BASE_URL = "http://localhost:8000/admin";
-
+// $.ajaxSetup({
+//     beforeSend: function(xhr) {
+//         const token = localStorage.getItem("authToken");
+//         if (token) {
+//             xhr.setRequestHeader("Authorization", "Bearer " + token);
+//         }
+//     }
+// });
 
 function loginUser(credentials) {
   return $.ajax({
@@ -166,11 +173,10 @@ $(document).ready(function () {
         const tableHTML = generateWorkersTableHTML(workers);
         $("#workersTableContainer").html(tableHTML);
 
-        $(".btn-edit-worker").on("click", function () {
-          const employeeId = $(this).data("id");
-          alert(
-            `Editing employee ID: ${employeeId}\n\nIn full version redirect to edit.html?id=${employeeId}`,
-          );
+        $("#workersTableContainer").on("click", ".btn-edit-worker", function () {
+        const employeeId = $(this).data("id");
+        // Przekierowanie do edit.html z parametrem ID
+        window.location.href = `edit.html?id=${employeeId}`; 
         });
       })
       .fail(function (xhr) {
@@ -181,15 +187,12 @@ $(document).ready(function () {
       });
 
     $("#editBtn").on("click", function () {
-      alert(
-        'Redirecting to employee edit page\n\nIn full version: window.location.href = "edit.html"',
-      );
+        window.location.href = "edit.html"; 
     });
 
+    // 3. Przycisk "Reports" w stopce
     $("#reportsBtn").on("click", function () {
-      alert(
-        'Redirecting to reports page\n\nIn full version: window.location.href = "reports.html"',
-      );
+        window.location.href = "reports.html";
     });
 
     $("#logoutBtn").on("click", function () {
