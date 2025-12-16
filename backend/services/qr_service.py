@@ -1,8 +1,6 @@
-# qr_service.py
 import cv2 as cv
 import numpy as np
 from typing import Optional, Tuple
-
 
 class CodeDetector:
     def __init__(self, multi_mode: bool = False):
@@ -34,10 +32,25 @@ class CodeDetector:
             return None, None
         return text, points
 
-    @staticmethod
-    def draw_bbox(frame, points, color=(0, 255, 0), thickness: int = 3):
-        if points is None:
-            return frame
-        pts = points.astype(int).reshape(-1, 2)
-        cv.polylines(frame, [pts], isClosed=True, color=color, thickness=thickness)
-        return frame
+
+def decode_qr_from_bytes(image_bytes: bytes) -> Optional[str]:
+    """
+    Converts raw bytes (from UploadFile) to an OpenCV image and detects QR.
+    """
+    try:
+        # Convert bytes to numpy array
+        nparr = np.frombuffer(image_bytes, np.uint8)
+        
+        # Decode to image format (cv2 image)
+        img = cv.imdecode(nparr, cv.IMREAD_COLOR)
+        
+        if img is None:
+            return None
+
+        # Use the CodeDetector class
+        detector = CodeDetector()
+        return detector.detect_qr(img)
+        
+    except Exception as e:
+        print(f"Error processing image: {e}")
+        return None

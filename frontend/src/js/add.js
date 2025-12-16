@@ -1,0 +1,37 @@
+$(document).ready(function() {
+    const API_BASE_URL = "http://localhost:8000/admin";
+
+    $("#backBtn, #cancelBtn").on("click", function() {
+        window.location.href = "dashboard.html";
+    });
+
+    $("#addEmployeeForm").on("submit", function(e) {
+        e.preventDefault();
+
+        const employeeData = {
+            first_name: $("#firstName").val(),
+            last_name: $("#lastName").val(),
+            email: $("#email").val()
+        };
+
+        $.ajax({
+            // UWAGA: Zmieniono URL na /create_employee
+            url: `${API_BASE_URL}/create_employee`, 
+            method: "POST",
+            contentType: "application/json",
+            data: JSON.stringify(employeeData),
+            success: function(response) {
+                alert(`Dodano pracownika: ${response.first_name} ${response.last_name}`);
+                window.location.href = "dashboard.html";
+            },
+            error: function(xhr) {
+                console.error("Błąd dodawania:", xhr);
+                let msg = "Błąd dodawania pracownika.";
+                if (xhr.responseJSON && xhr.responseJSON.detail) {
+                    msg += "\nSzczegóły: " + xhr.responseJSON.detail;
+                }
+                alert(msg);
+            }
+        });
+    });
+});
