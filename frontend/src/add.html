@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dodaj Pracownika - Admin Panel</title>
+    <title>Add employee - Admin Panel</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -11,28 +11,28 @@
         <header class="dashboard-header">
             <div class="admin-info">
                 <span class="admin-label">Administrator:</span>
-                <span id="adminName" class="admin-name">Ładowanie...</span>
+                <span id="adminName" class="admin-name">Loading...</span>
             </div>
             <div class="header-actions">
-                <button id="backBtn" class="btn btn-secondary">Powrót</button>
-                <button id="logoutBtn" class="btn btn-secondary">Wyloguj</button>
+                <button id="backBtn" class="btn btn-secondary">Back</button>
+                <button id="logoutBtn" class="btn btn-secondary">Log out</button>
             </div>
         </header>
 
         <main class="dashboard-main">
             <div class="content-header">
-                <h2>Dodaj Nowego Pracownika</h2>
+                <h2>Add new employee</h2>
             </div>
             
             <div class="edit-card">
                 <form id="addEmployeeForm">
                     <div class="form-grid">
                         <div class="form-group">
-                            <label for="firstName">Imię</label>
+                            <label for="firstName">First name</label>
                             <input type="text" id="firstName" name="first_name" required>
                         </div>
                         <div class="form-group">
-                            <label for="lastName">Nazwisko</label>
+                            <label for="lastName">Last name</label>
                             <input type="text" id="lastName" name="last_name" required>
                         </div>
                         <div class="form-group">
@@ -44,8 +44,8 @@
                     <div class="form-message" id="formMessage"></div>
                     
                     <div class="form-actions">
-                        <button type="button" id="cancelBtn" class="btn btn-cancel">Anuluj</button>
-                        <button type="submit" id="addBtn" class="btn btn-primary">Dodaj Pracownika</button>
+                        <button type="button" id="cancelBtn" class="btn btn-cancel">Cancel</button>
+                        <button type="submit" id="addBtn" class="btn btn-primary">Add employee</button>
                     </div>
                 </form>
             </div>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Raporty - Admin Panel</title>
+    <title>Raports - Admin Panel</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -11,41 +11,41 @@
         <header class="dashboard-header">
             <div class="admin-info">
                 <span class="admin-label">Administrator:</span>
-                <span id="adminName" class="admin-name">Ładowanie...</span>
+                <span id="adminName" class="admin-name">Loading...</span>
             </div>
             <div class="header-actions">
-                <button id="backBtn" class="btn btn-secondary">Powrót</button>
-                <button id="logoutBtn" class="btn btn-secondary">Wyloguj</button>
+                <button id="backBtn" class="btn btn-secondary">Back</button>
+                <button id="logoutBtn" class="btn btn-secondary">Log out</button>
             </div>
         </header>
 
         <main class="dashboard-main">
             <div class="content-header">
-                <h2>Generowanie Raportów</h2>
+                <h2>Generate Raports</h2>
             </div>
             
             <div class="reports-card">
                 <form id="reportFiltersForm" class="reports-filters">
                     <div class="filter-group">
-                        <label for="employeeSelect">Pracownik</label>
+                        <label for="employeeSelect">Employee</label>
                         <select id="employeeSelect" name="employee_id">
-                            <option value="">Wszyscy pracownicy</option>
+                            <option value="">All employees</option>
                         </select>
                     </div>
 
                     <div class="filter-group">
-                        <label for="dateFrom">Data od</label>
+                        <label for="dateFrom">Date from</label>
                         <input type="datetime-local" id="dateFrom" name="date_from" required>
                     </div>
 
                     <div class="filter-group">
-                        <label for="dateTo">Data do</label>
+                        <label for="dateTo">Date to</label>
                         <input type="datetime-local" id="dateTo" name="date_to" required>
                     </div>
                     
                     <div class="filter-group" style="flex: 0 0 auto;">
                         <button type="submit" id="generateReportBtn" class="btn btn-primary">
-                            Generuj Raport
+                            Generate raport
                         </button>
                     </div>
                 </form>
@@ -53,17 +53,17 @@
                 <div style="margin-top: 15px;">
                     <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                         <input type="checkbox" id="lockUnlockFilter">
-                        <span style="font-size: 14px; color: #555;">Pokaż tylko zdarzenia wejścia/wyjścia (Lock/Unlock)</span>
+                        <span style="font-size: 14px; color: #555;">Show only entry/exit events (Lock/Unlock)</span>
                     </label>
                 </div>
             </div>
 
             <div class="content-header" style="margin-top: 30px;">
-                <h2>Wyniki Raportu</h2>
+                <h2>Report Results</h2>
             </div>
             
             <div id="reportsTableContainer" class="report-results-container">
-                <p class="loading">Wybierz zakres dat i kliknij "Generuj Raport"</p>
+                <p class="loading">Select the date range and click ‘Generate Report’</p>
             </div>
         </main>
     </div>

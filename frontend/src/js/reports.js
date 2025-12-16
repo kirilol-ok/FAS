@@ -2,8 +2,6 @@ $(document).ready(function() {
     const API_BASE_URL = "http://localhost:8000/admin";
     const authToken = localStorage.getItem('authToken');
     
-    // ... (kod sprawdzania auth i dat bez zmian) ...
-    // Skrót dla czytelności:
     
     if (!authToken) { window.location.href = 'index.html'; return; }
     
@@ -20,7 +18,6 @@ $(document).ready(function() {
         generateReport();
     });
 
-    // ... (pozostałe handlery przycisków bez zmian) ...
 
     function loadEmployeesList() {
         $.ajax({
@@ -99,4 +96,8 @@ $(document).ready(function() {
         tableHTML += `</tbody></table>`;
         $('#reportsTableContainer').html(tableHTML);
     }
+
+    $("#backBtn").on("click", function () {
+        window.location.href = "dashboard.html";
+    });
 });
