@@ -1,4 +1,5 @@
-const API_BASE_URL = "/admin";
+const API_BASE_URL = "http://localhost:8000/admin";
+
 
 function loginUser(credentials) {
   return $.ajax({
@@ -22,7 +23,7 @@ function getCurrentAdmin(email) {
 
 function getWorkersTable() {
   return $.ajax({
-    url: `${API_BASE_URL}/employees`,
+    url: `${API_BASE_URL}/all_employees`,
     method: "GET",
   });
 }
