@@ -25,6 +25,7 @@ services:
     working_dir: /app
     volumes:
       - ./frontend:/app
+      - /app/node_modules
       - ./.git:/app/.git:rw
       - ./.gitignore:/app/.gitignore:rw
       - ./.env:/app/.env:rw
