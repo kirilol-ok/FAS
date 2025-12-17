@@ -21,5 +21,5 @@ class Reports(LogBase):
     created_at = Column(DateTime, index=True, default=now_utc, nullable=False)
     retention_until = Column(DateTime, default=deletion_date, nullable=False)
     employee_id = Column(Integer, index=True)
-    status = Column(Enum("OK", "Error"), index=True)
+    status = Column(Enum("OK", "Error", name="report_status"), index=True)
     denial_reason = Column(String)
