@@ -15,20 +15,19 @@ $(document).ready(function() {
         };
 
         $.ajax({
-            // UWAGA: Zmieniono URL na /create_employee
             url: `${API_BASE_URL}/create_employee`, 
             method: "POST",
             contentType: "application/json",
             data: JSON.stringify(employeeData),
             success: function(response) {
-                alert(`Dodano pracownika: ${response.first_name} ${response.last_name}`);
+                alert(`Employee added: ${response.first_name} ${response.last_name}`);
                 window.location.href = "dashboard.html";
             },
             error: function(xhr) {
-                console.error("Błąd dodawania:", xhr);
-                let msg = "Błąd dodawania pracownika.";
+                console.error("Addition error: ", xhr);
+                let msg = "Error adding employee.";
                 if (xhr.responseJSON && xhr.responseJSON.detail) {
-                    msg += "\nSzczegóły: " + xhr.responseJSON.detail;
+                    msg += "\nDetails: " + xhr.responseJSON.detail;
                 }
                 alert(msg);
             }
