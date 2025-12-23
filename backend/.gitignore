@@ -28,12 +28,6 @@ backend/.pytest_cache/
 *.db
 *.bak
 
-
-alembic.ini
-alembic/
-alembic/*.log
-
-
 node_modules/
 dist/
 build/
