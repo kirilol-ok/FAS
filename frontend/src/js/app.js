@@ -1,12 +1,4 @@
 const API_BASE_URL = "http://localhost:8000/admin";
-// $.ajaxSetup({
-//     beforeSend: function(xhr) {
-//         const token = localStorage.getItem("authToken");
-//         if (token) {
-//             xhr.setRequestHeader("Authorization", "Bearer " + token);
-//         }
-//     }
-// });
 
 function loginUser(credentials) {
   return $.ajax({
@@ -167,7 +159,6 @@ $(document).ready(function () {
         });
     }
 
-    //it will be changed
     getWorkersTable()
       .done(function (workers) {
         const tableHTML = generateWorkersTableHTML(workers);
@@ -175,7 +166,6 @@ $(document).ready(function () {
 
         $("#workersTableContainer").on("click", ".btn-edit-worker", function () {
         const employeeId = $(this).data("id");
-        // Przekierowanie do edit.html z parametrem ID
         window.location.href = `edit.html?id=${employeeId}`; 
         });
       })
@@ -186,11 +176,11 @@ $(document).ready(function () {
         console.error("Error fetching employees:", xhr);
       });
 
-    $("#editBtn").on("click", function () {
-        window.location.href = "edit.html"; 
+    $("#addBtn").on("click", function () {
+        window.location.href = "add.html"; 
     });
 
-    // 3. Przycisk "Reports" w stopce
+ 
     $("#reportsBtn").on("click", function () {
         window.location.href = "reports.html";
     });
