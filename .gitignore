@@ -23,6 +23,7 @@ backend/app.db
 backend/databases/app.db
 backend/__pycache__/
 backend/.pytest_cache/
+backend/alembic
 
 *.sqlite3
 *.db
