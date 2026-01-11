@@ -2,6 +2,7 @@ import cv2 as cv
 import numpy as np
 from typing import Optional, Tuple
 
+
 class CodeDetector:
     def __init__(self, multi_mode: bool = False):
         self.detector = cv.QRCodeDetector()
@@ -20,13 +21,12 @@ class CodeDetector:
                     return text
             return None
 
-        text, points, _ = self.detector.detectAndDecode(frame)
+        text, _, _ = self.detector.detectAndDecode(frame)
         return text if text else None
 
     def detect_qr_with_points(self, frame) -> Tuple[Optional[str], Optional[np.ndarray]]:
         if frame is None:
             return None, None
-
         text, points, _ = self.detector.detectAndDecode(frame)
         if not text:
             return None, None
@@ -35,22 +35,15 @@ class CodeDetector:
 
 def decode_qr_from_bytes(image_bytes: bytes) -> Optional[str]:
     """
-    Converts raw bytes (from UploadFile) to an OpenCV image and detects QR.
+    Decode QR code from raw bytes (typically uploaded files).
     """
     try:
-        # Convert bytes to numpy array
         nparr = np.frombuffer(image_bytes, np.uint8)
-        
-        # Decode to image format (cv2 image)
         img = cv.imdecode(nparr, cv.IMREAD_COLOR)
-        
         if img is None:
             return None
-
-        # Use the CodeDetector class
         detector = CodeDetector()
         return detector.detect_qr(img)
-        
     except Exception as e:
         print(f"Error processing image: {e}")
         return None

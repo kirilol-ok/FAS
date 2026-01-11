@@ -12,7 +12,6 @@ from backend.models.employees import Employees
 from backend.models.image_files import ImageFiles
 
 
-
 class ImageStorageService:
     def __init__(self, session: Session):
         self.session = session
@@ -73,6 +72,18 @@ class ImageStorageService:
     def get_image_bytes(self, image_id: int) -> Optional[Tuple[bytes, str]]:
         image = self.session.execute(
             select(ImageFiles).where(ImageFiles.id == image_id)
+        ).scalar_one_or_none()
+
+        if not image:
+            return None
+        return image.data, image.mime_type
+
+    def get_image_bytes_by_hash(self, hash_hex: str) -> Optional[Tuple[bytes, str]]:
+        if not hash_hex:
+            raise ValueError("Hash value must be provided")
+
+        image = self.session.execute(
+            select(ImageFiles).where(ImageFiles.hash == hash_hex)
         ).scalar_one_or_none()
 
         if not image:
