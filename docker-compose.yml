@@ -49,5 +49,20 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  camera:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.backend
+    container_name: camera_service
+    env_file:
+      - .env
+    working_dir: /app
+    volumes:
+      - ./:/app
+    depends_on:
+      - postgres
+    command: sh -c "uvicorn backend.camera_main:app --host 0.0.0.0 --port 3001 --reload"
+    ports:
+      - "3001:3001"
 volumes:
   postgres_data:
