@@ -16,7 +16,8 @@
   "runServices": [
     "backend",
     "postgres",
-    "frontend"
+    "frontend",
+    "camera"
   ],
 
   "shutdownAction": "stopCompose",

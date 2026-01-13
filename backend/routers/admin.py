@@ -101,8 +101,6 @@ async def update_employee(
         worker.dismissal_date = update_data.dismissal_date
     if update_data.dismissed is not None:    
         worker.dismissed = update_data.dismissed  
-    if update_data.dismissal_date is not None:
-        worker.dismissal_date = update_data.dismissal_date
     
 
     await db.commit()
@@ -274,3 +272,18 @@ async def delete_employee(
     
 
     return None
+
+@router.patch("/employees/{employee_id}", response_model=EmployeeDisplay)
+async def update_employee_alias(
+    employee_id: int,
+    update_data: EmployeeUpdate,
+    db: AsyncSession = Depends(get_sqlite_db)
+):
+    return await update_employee(employee_id, update_data, db)
+
+@router.post("/reports/generate")
+async def generate_report_alias(
+    query_data: ReportRequest,
+    db: AsyncSession = Depends(get_postgres_db),
+):
+    return await generate_report(query_data, db)

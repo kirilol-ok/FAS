@@ -4,7 +4,7 @@ app = FastAPI()
 
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from backend.routers import admin
+from backend.routers import admin, identification
 from backend.databases.db import init_postgres_db, init_sqlite_db
 
 @asynccontextmanager
@@ -20,6 +20,8 @@ app = FastAPI(title="User Identification System", lifespan=lifespan)
 origins = [
     "http://localhost:3000",      # Python http.server
     "http://127.0.0.1:3000",
+    "http://localhost:3001",      # добавляем порт 3001
+    "http://127.0.0.1:3001",
     "http://localhost:5500",      # VS Code Live Server
     "http://127.0.0.1:5500",
     "http://localhost:8000",      # 
@@ -35,7 +37,7 @@ app.add_middleware(
 )
 
 app.include_router(admin.router)
-# app.include_router(identification.router)
+app.include_router(identification.router)
 
 @app.get("/")
 def read_root():

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Camera Live View</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
     <div class="dashboard-container">
@@ -30,14 +30,21 @@
             </div>
 
             <div class="video-container">
-                <video id="videoStream" autoplay playsinline></video>
+                <img id="videoStream" src="http://localhost:8090/video">
+
                 <div class="video-overlay" id="overlay">
                     <span>Loading camera stream...</span>
                 </div>
             </div>
+
+            <div style="margin-top: 12px; display:flex; gap:12px;">
+                <button id="checkButton" class="btn btn-primary">Check</button> 
+                <canvas id="snapshotCanvas" style="display:none;"></canvas>
+            </div>
+
         </main>
     </div>
 
-    <script src="js/camera.js"></script>
+    <script src="/static/js/camera.js"></script>
 </body>
 </html>
