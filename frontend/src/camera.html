@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Live View</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="admin-info">
+                <span class="admin-label">Camera View</span>
+                <span class="admin-name">Live Stream</span>
+            </div>
+            <div class="header-actions">
+                <button id="backBtn" class="btn btn-secondary" onclick="window.history.back()">Back</button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="dashboard-main">
+            <div class="content-header">
+                <h2>Camera Live View</h2>
+                <div class="status" id="status">
+                    <span class="status-dot"></span>
+                    <span id="statusText">Connecting...</span>
+                </div>
+            </div>
+
+            <div class="video-container">
+                <video id="videoStream" autoplay playsinline></video>
+                <div class="video-overlay" id="overlay">
+                    <span>Loading camera stream...</span>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/camera.js"></script>
+</body>
+</html>
