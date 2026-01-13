@@ -15,13 +15,13 @@ from .qr_service import CodeDetector
 class CameraInput:
     def __init__(
         self,
-        camera_index: int = 0,
+        url: str = "http://host.docker.internal:8090/video",
         image_storage_service: Optional[ImageStorageService] = None,
         expected_image_hash: Optional[str] = None,
         expected_image_path: Optional[str] = None,
         verification_timeout: int = 5,
     ) -> None:
-        self.cap = cv.VideoCapture(camera_index)
+        self.cap = cv.VideoCapture(url)
         self.code_detector = CodeDetector(multi_mode=False)
         self.face_service = FaceRecognitionService()
         self.image_storage_service = image_storage_service
