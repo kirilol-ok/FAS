@@ -15,7 +15,10 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 ENV_PATH = BASE_DIR / ".env"
 
 load_dotenv(ENV_PATH)
-SQLITE_URL = "sqlite+aiosqlite:///./backend/databases/app.db"
+SQLITE_DB_PATH = BASE_DIR / "backend" / "databases" / "app.db"
+SQLITE_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+SQLITE_URL = f"sqlite+aiosqlite:///{SQLITE_DB_PATH}"
+
 
 
 POSTGRES_USER = os.getenv("POSTGRES_USER", "admin")
@@ -85,8 +88,10 @@ async def init_postgres_db() -> None:
     
     print(" Nie udało się połączyć z bazą po wielu próbach. Aplikacja może nie działać poprawnie.")
 
-def init_all_db() -> None:
-    init_sqlite_db()
+async def init_all_db() -> None:
+    await init_sqlite_db()
+    await init_postgres_db()
+
 
 # --- DEPENDENCY INJECTION ---
 
