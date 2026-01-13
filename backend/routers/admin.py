@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
 from backend.databases.db import get_postgres_db, get_sqlite_db
-from backend.email_utils import send_qr_code_email
+from backend.services.email_service import send_qr_code_email
 from backend.models.admins import Admins
 from backend.models.employees import Employees
 from backend.models.reports import Reports
