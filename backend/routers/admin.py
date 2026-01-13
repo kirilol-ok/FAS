@@ -114,36 +114,31 @@ async def update_employee(
 
 
 @router.post("/reports/display_raports")
-def generate_report(
+async def generate_report(
     query_data: ReportRequest,
-    db: AsyncSession = Depends(get_postgres_db)
+    db: AsyncSession = Depends(get_postgres_db),
 ):
-    """
-    Pobiera raporty wejść/wyjść.
-    Naprawiono: Uwzględnia pełny zakres godzin (od początku do końca dnia).
-    """
-    
-    # 1. datatime conversion
+
+    # 1. datetime conversion
     start_datetime = datetime.combine(query_data.date_from, time.min)
-    
-    # end   -> 2025-11-25 23:59:59.999999
     end_datetime = datetime.combine(query_data.date_to, time.max)
 
-    # 2. using full datatime in query
-    query = db.query(Reports).filter(
+    # 2. base stmt
+    stmt = select(Reports).where(
         Reports.created_at >= start_datetime,
-        Reports.created_at <= end_datetime
+        Reports.created_at <= end_datetime,
     )
 
     # 3. filter for chosen employee
     if query_data.employee_id:
-        query = query.filter(Reports.employee_id == query_data.employee_id)
+        stmt = stmt.where(Reports.employee_id == query_data.employee_id)
 
     # 4. data sort - new is up
-    query = query.order_by(Reports.created_at.desc())
+    stmt = stmt.order_by(Reports.created_at.desc())
 
-    logs = query.all()
-    
+    result = await db.execute(stmt)
+    logs = result.scalars().all()
+
     return logs
 
 
