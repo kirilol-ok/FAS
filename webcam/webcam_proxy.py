@@ -1,8 +1,10 @@
 import cv2
 from flask import Flask, Response
+from flask_cors import CORS
 
 app = Flask(__name__)
 
+CORS(app, resources={r"/*": {"origins": ["http://localhost:3001", "http://localhost:3000"]}})
 # 0 = первая камера. CAP_DSHOW обычно стабильнее на Windows
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
@@ -49,6 +51,15 @@ def video():
 @app.get("/health")
 def health():
     return {"ok": True, "camera_opened": bool(cap.isOpened())}
+
+@app.get("/snapshot")
+def snapshot():
+    ok, frame = cap.read()
+    if not ok:
+        return ("no frame", 500)
+    _, buf = cv2.imencode(".jpg", frame)
+    return Response(buf.tobytes(), mimetype="image/jpeg")
+
 
 if __name__ == "__main__":
     # host=127.0.0.1 достаточно для браузера на Windows-хосте
