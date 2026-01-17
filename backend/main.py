@@ -5,13 +5,13 @@ app = FastAPI()
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from backend.routers import admin, identification
-from backend.databases.db import init_postgres_db, init_sqlite_db
+from backend.databases.db import init_all_db
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    init_sqlite_db()
-    await init_postgres_db()
+    await init_all_db()
+    
     yield
     
 

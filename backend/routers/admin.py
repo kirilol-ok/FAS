@@ -2,6 +2,9 @@
 import uuid
 from datetime import date, datetime, time
 from typing import List
+from backend.services.image_storage_service import ImageStorageService
+from fastapi import File, UploadFile
+from backend.models.image_files import ImageFiles
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy import select
@@ -287,3 +290,39 @@ async def generate_report_alias(
     db: AsyncSession = Depends(get_postgres_db),
 ):
     return await generate_report(query_data, db)
+
+@router.post("/employees/{employee_id}/upload_photo")
+async def upload_employee_photo(
+    employee_id: int,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_sqlite_db)
+):
+    print(f"--- [DEBUG] Rozpoczynam upload dla ID: {employee_id} ---")
+    
+    # 1. Sprawdź czy plik dotarł
+    content = await file.read()
+    print(f"--- [DEBUG] Rozmiar pliku: {len(content)} bajtów ---")
+    
+    if len(content) == 0:
+        print("--- [DEBUG] BŁĄD: Plik pusty! ---")
+        raise HTTPException(status_code=400, detail="Pusty plik")
+
+    service = ImageStorageService(db)
+    
+    try:
+        # 2. Zapisz obraz
+        image_record = await service.save_image(content, file.filename)
+        print(f"--- [DEBUG] Zapisano obraz, ID obrazu: {image_record.id} ---")
+        
+        # 3. Przypisz
+        employee = await service.assign_employee_image(employee_id, image_record)
+        print(f"--- [DEBUG] Przypisano do pracownika: {employee.email} ---")
+        
+        await db.commit()
+        print("--- [DEBUG] COMMIT wykonany pomyślnie ---")
+        
+        return {"status": "success", "image_id": image_record.id}
+    except Exception as e:
+        await db.rollback()
+        print(f"--- [DEBUG] WYJĄTEK: {e} ---")
+        raise HTTPException(status_code=500, detail=f"Błąd: {e}")

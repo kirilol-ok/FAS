@@ -8,7 +8,6 @@
 </head>
 <body>
     <div class="dashboard-container">
-        <!-- Header -->
         <header class="dashboard-header">
             <div class="admin-info">
                 <span class="admin-label">Camera View</span>
@@ -19,30 +18,22 @@
             </div>
         </header>
 
-        <!-- Main Content -->
         <main class="dashboard-main">
             <div class="content-header">
                 <h2>Camera Live View</h2>
+                <h2 id="detectedName" style="color: #3b82f6; min-height: 1.5em; text-align: center;">---</h2>
+                
                 <div class="status" id="status">
                     <span class="status-dot"></span>
-                    <span id="statusText">Connecting...</span>
+                    <span id="statusText">System Active</span>
                 </div>
             </div>
 
             <div class="video-container">
-                <img id="videoStream" src="http://localhost:8090/video">
-
-                <div class="video-overlay" id="overlay">
-                    <span>Loading camera stream...</span>
-                </div>
+                <img id="videoStream" src="http://localhost:8090/video" style="width: 100%; height: 100%; object-fit: contain;">
             </div>
 
-            <div style="margin-top: 12px; display:flex; gap:12px;">
-                <button id="checkButton" class="btn btn-primary">Check</button> 
-                <canvas id="snapshotCanvas" style="display:none;"></canvas>
-            </div>
-
-        </main>
+            </main>
     </div>
 
     <script src="/static/js/camera.js"></script>

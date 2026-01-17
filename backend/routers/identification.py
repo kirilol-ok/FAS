@@ -1,86 +1,151 @@
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
+from sqlalchemy import select, text
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+import cv2
+import numpy as np
+import os
 
-from backend.databases.db import SQLiteSessionLocal, get_postgres_db
+# --- IMPORTY SQLITE (Główna baza) ---
+from backend.databases.db import get_sqlite_db
+
+# Modele
 from backend.models.employees import Employees
 from backend.models.reports import Reports
+from backend.models.image_files import ImageFiles
 from backend.schemas import EmployeeDisplay
-
-from backend.services.qr_service import decode_qr_from_bytes
+from backend.services.face_recognision_service import FaceRecognitionService
 
 router = APIRouter(
     prefix="/identify",
     tags=["Identification"]
 )
 
+face_service = FaceRecognitionService()
 
-def save_log_background(employee_id: int | None, status_msg: str, reason: str | None):
+# ==============================================================================
+# KONFIGURACJA POSTGRES (ASYNC)
+# ==============================================================================
+# Host: 'db' (nazwa serwisu z docker-compose)
+POSTGRES_USER = os.getenv("POSTGRES_USER", "admin")
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "admin")
+POSTGRES_DB = os.getenv("POSTGRES_DB", "fas-project-database")
+
+POSTGRES_HOST = os.getenv("POSTGRES_HOST", "postgres_databases")
+POSTGRES_PORT = int(os.getenv("POSTGRES_PORT", "5432"))
+
+POSTGRES_URL = (
+    f"postgresql+asyncpg://{POSTGRES_USER}:{POSTGRES_PASSWORD}"
+    f"@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
+)
+
+# Ustawiamy echo=True -> Zobaczysz SQL w terminalu!
+pg_async_engine = create_async_engine(POSTGRES_URL, echo=True)
+
+AsyncSessionPG = sessionmaker(
+    bind=pg_async_engine,
+    class_=AsyncSession,
+    expire_on_commit=False
+)
+
+# ==============================================================================
+# ZADANIE W TLE (ASYNC)
+# ==============================================================================
+async def save_log_background(employee_id: int | None, status_msg: str, reason: str | None):
+    print(f"--- [DEBUG] Próba zapisu do Postgres: {status_msg} ({reason}) ---")
     
-    db = SQLiteSessionLocal()
-    try:
-        report = Reports(
-            employee_id=employee_id,
-            status=status_msg,
-            denial_reason=reason
-        )
-        db.add(report)
-        db.commit()
-        print(f" [BACKGROUND] Log saved: {status_msg} (ID: {report.id})")
-    except Exception as e:
-        print(f" [BACKGROUND] Error saving log: {e}")
-    finally:
-        db.close()
+    async with AsyncSessionPG() as db:
+        try:
+            report = Reports(
+                employee_id=employee_id, 
+                status=status_msg, 
+                denial_reason=reason
+            )
+            db.add(report)
+            await db.commit()
+            # Nie ma tu printa "Połączenie zamknięte" - jeśli go zobaczysz, to stary kod!
+            print(f"✅ [LOG ASYNC] COMMIT WYKONANY: {status_msg} -> {reason}")
+        except Exception as e:
+            await db.rollback()
+            print(f"❌ [LOG ERROR] {e}")
 
-# --- ENDPOINT ---
+# ==============================================================================
+# ENDPOINT DO PODGLĄDU LOGÓW (GET)
+# ==============================================================================
+@router.get("/logs")
+async def get_all_logs():
+    async with AsyncSessionPG() as db:
+        # Pobieramy 50 ostatnich logów
+        result = await db.execute(select(Reports).order_by(Reports.id.desc()).limit(50))
+        logs = result.scalars().all()
+        return logs
+
+# ==============================================================================
+# GŁÓWNY ENDPOINT (POST)
+# ==============================================================================
 @router.post("/qr", response_model=EmployeeDisplay)
 async def identify_user_by_qr(
-    background_tasks: BackgroundTasks,
-    file: UploadFile = File(...),
-    db: AsyncSession = Depends(get_postgres_db)
+    background_tasks: BackgroundTasks, # Możesz to usunąć, jeśli już nie używasz
+    qr_code: str = Form(...),      
+    file: UploadFile = File(...),  
+    db: AsyncSession = Depends(get_sqlite_db)
 ):
-    
-    content = await file.read()
-    
-    qr_code_data = decode_qr_from_bytes(content)
+    print(f"\n### OTRZYMANO KOD QR: {qr_code} ###")
 
-    if not qr_code_data:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, 
-            detail="No QR code detected in the image or file is corrupted."
-        )
-
-    
-    result = await db.execute(select(Employees).where(Employees.qr_value == qr_code_data))
+    # 1. Sprawdzenie kodu QR w bazie SQLite
+    result = await db.execute(select(Employees).where(Employees.qr_value == qr_code))
     employee = result.scalars().first()
 
-    # --- Unknown QR Code ---
+    # --- SCENARIUSZ 3: ZŁY QR ---
     if not employee:
-        masked = qr_code_data[:3] + "..." + qr_code_data[-3:] if len(qr_code_data) > 6 else "???"
-        print(f" Attempt to enter with unknown code: {masked}")
-        
-        background_tasks.add_task(save_log_background, None, "Error", f"Unknown code: {masked}")
-        
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, 
-            detail="Unknown QR code."
-        )
+        print(f"--- [SCENARIUSZ 3] Nieznany QR. Loguję błąd...")
+        # AWAIT (czekamy aż się zapisze, potem błąd)
+        await save_log_background(None, "Error", f"Nieznany kod QR: {qr_code}")
+        raise HTTPException(status_code=404, detail="Unknown QR code.")
 
-    # --- Dismissed/Inactive Employee ---
-    if getattr(employee, 'dismissed', False) or (hasattr(employee, 'dismissal_date') and employee.dismissal_date is not None):
-        print(f" Entry attempt by dismissed employee: {employee.email}")
-        
-        background_tasks.add_task(save_log_background, employee.id, "Error", "Employee dismissed")
-        
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, 
-            detail="Access denied (Employee inactive)."
-        )
-    
-    # --- Success ---
-    log_message = f"Logged in successfully: {employee.first_name} {employee.last_name}"
-    print(f"{log_message}")
+    if employee.dismissed:
+        await save_log_background(employee.id, "Error", "Pracownik zwolniony")
+        raise HTTPException(status_code=403, detail="Employee inactive.")
 
-    background_tasks.add_task(save_log_background, employee.id, "OK", log_message)
+    # 2. Przygotowanie do weryfikacji twarzy
+    if not employee.image_id:
+        await save_log_background(employee.id, "Error", "Brak zdjęcia wzorcowego")
+        raise HTTPException(status_code=403, detail="No reference photo.")
+
+    img_result = await db.execute(select(ImageFiles).where(ImageFiles.id == employee.image_id))
+    ref_image_file = img_result.scalars().first()
+
+    if not ref_image_file or not ref_image_file.data:
+        raise HTTPException(status_code=500, detail="Reference photo corrupted.")
+
+    content = await file.read()
+    nparr = np.frombuffer(content, np.uint8)
+    frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+    print(f"--- [FACE] Weryfikacja dla: {employee.first_name} {employee.last_name}...")
     
-    return employee
+    is_verified = False
+    try:
+        is_verified = face_service.verify_face_with_bytes(
+            frame=frame, 
+            reference_image_bytes=ref_image_file.data,
+            mime_type=ref_image_file.mime_type
+        )
+    except Exception as e:
+        await save_log_background(employee.id, "Error", f"Błąd algorytmu: {str(e)}")
+        raise HTTPException(status_code=403, detail="Face verification error")
+
+    # --- DECYZJA KOŃCOWA ---
+    
+    if is_verified:
+        # --- SCENARIUSZ 1: SUKCES ---
+        print(f"--- [SCENARIUSZ 1] Sukces. Zapisuję log...")
+        # Tu też użyjmy await dla pewności
+        await save_log_background(employee.id, "OK", "Weryfikacja pomyślna")
+        return employee
+    else:
+        # --- SCENARIUSZ 2: ZŁA TWARZ ---
+        print("--- [SCENARIUSZ 2] Twarz niezgodna. Zapisuję log...")
+        # AWAIT (To naprawi Twój problem)
+        await save_log_background(employee.id, "Error", "Twarz niezgodna")
+        raise HTTPException(status_code=403, detail="Face verification failed.")
