@@ -1,12 +1,14 @@
 import asyncio
 import os
 from pathlib import Path
-from typing import AsyncGenerator, Generator
+from typing import AsyncGenerator
 
 from dotenv import load_dotenv
+from sqlalchemy import select
 from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
+from backend.models.admins import Admins
 
 from backend.models import admins, employees, image_files
 from backend.models.base import CoreBase, LogBase
@@ -65,7 +67,11 @@ PostgresAsyncSession = sessionmaker(
 
 async def init_sqlite_db():
     async with sqlite_engine.begin() as conn:
-        await conn.run_sync(LogBase.metadata.create_all)
+        await conn.run_sync(CoreBase.metadata.create_all)
+
+    
+        
+    
 
 # --- "RETRY LOGIC" ---
 async def init_postgres_db() -> None:
@@ -76,7 +82,7 @@ async def init_postgres_db() -> None:
         try:
             print(f" Próba połączenia z bazą ({POSTGRES_HOST})...")
             async with postgres_engine.begin() as conn:
-                await conn.run_sync(CoreBase.metadata.create_all)
+                await conn.run_sync(LogBase.metadata.create_all)
             print(" Połączono z bazą danych pomyślnie!")
             return  # 
             
@@ -91,6 +97,43 @@ async def init_postgres_db() -> None:
 async def init_all_db() -> None:
     await init_sqlite_db()
     await init_postgres_db()
+    print(" -> [ADMIN] Sprawdzanie konta administratora...")
+    
+    # Tworzymy sesję tylko do tego zadania
+    async_session = sessionmaker(sqlite_engine, class_=AsyncSession, expire_on_commit=False)
+    
+    async with async_session() as db:
+        try:
+            # Sprawdź czy admin istnieje
+            result = await db.execute(select(Admins).where(Admins.email == "admin@example.com"))
+            existing_admin = result.scalars().first()
+
+            if not existing_admin:
+                print(" -> [ADMIN] Brak admina. Tworzę nowe konto...")
+                
+                # WAŻNE: Haszujemy hasło "admin"
+                
+                
+                new_admin = Admins(
+                    first_name="Admin",       # <--- NAPRAWIONO (było None)
+                    last_name="System",       # <--- NAPRAWIONO (było None)
+                    email="admin@example.com",
+                    password="admin", # <--- NAPRAWIONO (jest hash)
+                    qr_value="admin_qr_code"
+                )
+                db.add(new_admin)
+                await db.commit()
+                print(" -> [SUKCES] UTWORZONO ADMINA: admin@example.com / Hasło: admin")
+            else:
+                print(" -> [INFO] Admin już istnieje. Pomijam.")
+                
+        except Exception as e:
+            print(f" -> [BŁĄD ADMINA] Nie udało się dodać admina: {e}")
+            # Wypisz szczegóły błędu (np. brak tabeli)
+            import traceback
+            traceback.print_exc()
+
+    print("--- [STARTUP] SYSTEM GOTOWY ---\n")
 
 
 # --- DEPENDENCY INJECTION ---
