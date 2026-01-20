@@ -6,11 +6,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from backend.routers import admin, identification
 from backend.databases.db import init_all_db
+from backend.routers.identification import face_service
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
     await init_all_db()
+    face_service.preload_model()
     
     yield
     
@@ -20,7 +22,7 @@ app = FastAPI(title="User Identification System", lifespan=lifespan)
 origins = [
     "http://localhost:3000",      # Python http.server
     "http://127.0.0.1:3000",
-    "http://localhost:3001",      # добавляем порт 3001
+    "http://localhost:3001",      # 
     "http://127.0.0.1:3001",
     "http://localhost:5500",      # VS Code Live Server
     "http://127.0.0.1:5500",

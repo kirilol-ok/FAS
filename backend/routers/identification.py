@@ -1,3 +1,4 @@
+from datetime import datetime
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
@@ -56,10 +57,12 @@ async def save_log_background(employee_id: int | None, status_msg: str, reason: 
     
     async with AsyncSessionPG() as db:
         try:
+            local_now = datetime.now()
             report = Reports(
                 employee_id=employee_id, 
                 status=status_msg, 
-                denial_reason=reason
+                denial_reason=reason,
+                created_at=local_now
             )
             db.add(report)
             await db.commit()
@@ -120,7 +123,9 @@ async def identify_user_by_qr(
 
     content = await file.read()
     nparr = np.frombuffer(content, np.uint8)
-    frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    frame_bgr = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    
+    frame = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
 
     print(f"--- [FACE] Weryfikacja dla: {employee.first_name} {employee.last_name}...")
     
@@ -134,6 +139,21 @@ async def identify_user_by_qr(
     except Exception as e:
         await save_log_background(employee.id, "Error", f"Błąd algorytmu: {str(e)}")
         raise HTTPException(status_code=403, detail="Face verification error")
+    
+
+    # ... (dekodowanie zdjęcia powyżej)
+
+    # --- DEBUG WIZUALNY ---
+    print("--- [DEBUG] Zapisuję zdjęcia do porównania na dysku...")
+    # Zapisujemy to co przyszło z kamery (musimy wrócić do BGR żeby zapisać poprawnie przez OpenCV)
+    cv2.imwrite("debug_kamera.jpg", cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+    
+    # Zapisujemy to co jest w bazie
+    with open("debug_baza.jpg", "wb") as f:
+        f.write(ref_image_file.data)
+    # ----------------------
+
+    print(f"--- [FACE] Weryfikacja dla: {employee.first_name} {employee.last_name}...")
 
     # --- DECYZJA KOŃCOWA ---
     
