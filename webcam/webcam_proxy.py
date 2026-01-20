@@ -78,9 +78,8 @@ def gen_frames():
                 
                 if text:
                     # Wizualizacja tekstu na ekranie
-                    msg = f"QR: {text}"
-                    cv2.putText(frame, msg, (points[0][0][0], points[0][0][1] - 10),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+                    
+                    
 
                     # 2. LOGIKA AUTOMATYCZNEJ WYSYŁKI
                     current_time = time.time()

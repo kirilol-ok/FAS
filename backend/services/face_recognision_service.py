@@ -11,13 +11,23 @@ from deepface import DeepFace
 class FaceRecognitionService:
     def __init__(
         self,
-        model_name: str = "VGG-Face",
+        model_name: str = "Facenet512",
         detector_backend: str = "opencv",
         distance_metric: str = "cosine",
     ) -> None:
         self.model_name = model_name
         self.detector_backend = detector_backend
         self.distance_metric = distance_metric
+
+    def preload_model(self):
+        
+        print(f"--- [STARTUP] Ładowanie modelu {self.model_name} do pamięci... Proszę czekać.")
+        try:
+            # build_model tylko ładuje wagi, nie potrzebuje zdjęć
+            DeepFace.build_model(model_name=self.model_name)
+            print(f"✅ [STARTUP] Model {self.model_name} załadowany pomyślnie!")
+        except Exception as e:
+            print(f"❌ [STARTUP ERROR] Nie udało się załadować modelu: {e}")
 
     def verify_face(self, frame, reference_image_path: str) -> bool:
         if frame is None or not reference_image_path:
