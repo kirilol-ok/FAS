@@ -443,3 +443,84 @@ body {
     font-size: 22px;
   }
 }
+
+/* =========================
+   REPORTS FILTERS
+   ========================= */
+.reports-filters {
+  display: flex;
+  gap: 15px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 200px;
+}
+
+.filter-group label {
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.filter-group select,
+.filter-group input[type="datetime-local"] {
+  padding: 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.3s;
+}
+
+.filter-group select:focus,
+.filter-group input[type="datetime-local"]:focus {
+  outline: none;
+  border-color: #2563eb;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.loading {
+  text-align: center;
+  color: #6b7280;
+  font-size: 16px;
+  padding: 40px 20px;
+}
+
+/* Multi-select styling */
+.filter-group select[multiple] {
+  padding: 8px;
+  height: auto;
+  min-height: 100px;
+}
+
+.filter-group select[multiple] option {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  margin-bottom: 2px;
+}
+
+.filter-group select[multiple] option:checked {
+  background: linear-gradient(#3b82f6, #3b82f6);
+  color: white;
+  font-weight: 600;
+}
+
+.filter-group select[multiple] option:hover {
+  background: #e0e7ff;
+}
