@@ -2,23 +2,27 @@
 import uuid
 from datetime import date, datetime, time
 from typing import List
-from backend.services.image_storage_service import ImageStorageService
-from fastapi import File, UploadFile
-from backend.models.image_files import ImageFiles
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
-from sqlalchemy import select
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status, File, UploadFile
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Session
 
+from backend.models.image_files import ImageFiles
 from backend.databases.db import get_postgres_db, get_sqlite_db
 from backend.services.email_service import send_qr_code_email
+from backend.services.image_storage_service import ImageStorageService
 from backend.models.admins import Admins
 from backend.models.employees import Employees
 from backend.models.reports import Reports
-from backend.schemas import (AdminDisplay, EmployeeCreate, EmployeeDisplay,
-                             EmployeeUpdate, LoginRequest, ReportRequest,
-                             TokenResponse)
+from backend.schemas import (
+    AdminDisplay,
+    EmployeeCreate,
+    EmployeeDisplay,
+    EmployeeUpdate,
+    LoginRequest,
+    ReportRequest,
+    TokenResponse,
+)
 
 router = APIRouter(
     prefix="/admin",
@@ -100,10 +104,19 @@ async def update_employee(
         worker.last_name = update_data.last_name
     if update_data.email:
         worker.email = update_data.email
+    
+    
+    if update_data.dismissed is not None:
+        worker.dismissed = update_data.dismissed
+        
+        if update_data.dismissed is False:
+            worker.dismissal_date = None
+
     if update_data.dismissal_date is not None:
         worker.dismissal_date = update_data.dismissal_date
-    if update_data.dismissed is not None:    
-        worker.dismissed = update_data.dismissed  
+        worker.dismissed = True
+
+         
     
 
     await db.commit()
@@ -250,31 +263,47 @@ async def dismiss_employee(
 
 
 
-# --- 8) DELETE: Destroy Employee 
 @router.delete("/delete_employees/{employee_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_employee(
     employee_id: int,
     db: AsyncSession = Depends(get_sqlite_db)
 ):
-    """
-    delete employee -- can't control z
-    """
-    # 1. Szukamy pracownika
+    # 1) find employee
     result = await db.execute(select(Employees).where(Employees.id == employee_id))
     employee = result.scalars().first()
 
     if not employee:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, 
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Pracownik nie został znaleziony"
         )
 
-    # 2. delete employee from database
-    await db.delete(employee)
-    await db.commit()
-    
+    image_id = employee.image_id
 
+    # 2) check if someone else references this image (before we delete the employee)
+    other_refs = 0
+    if image_id is not None:
+        cnt_res = await db.execute(
+            select(func.count()).select_from(Employees).where(
+                Employees.image_id == image_id,
+                Employees.id != employee_id,
+            )
+        )
+        other_refs = cnt_res.scalar_one()
+
+    # 3) delete employee
+    await db.delete(employee)
+
+    # 4) delete image record only if it is not referenced by anyone else
+    if image_id is not None and other_refs == 0:
+        img_res = await db.execute(select(ImageFiles).where(ImageFiles.id == image_id))
+        img = img_res.scalars().first()
+        if img:
+            await db.delete(img)
+
+    await db.commit()
     return None
+
 
 @router.patch("/employees/{employee_id}", response_model=EmployeeDisplay)
 async def update_employee_alias(
@@ -295,34 +324,49 @@ async def generate_report_alias(
 async def upload_employee_photo(
     employee_id: int,
     file: UploadFile = File(...),
-    db: AsyncSession = Depends(get_sqlite_db)
+    db: AsyncSession = Depends(get_sqlite_db),
 ):
-    print(f"--- [DEBUG] Rozpoczynam upload dla ID: {employee_id} ---")
-    
-    # 1. Sprawdź czy plik dotarł
     content = await file.read()
-    print(f"--- [DEBUG] Rozmiar pliku: {len(content)} bajtów ---")
-    
-    if len(content) == 0:
-        print("--- [DEBUG] BŁĄD: Plik pusty! ---")
+    if not content:
         raise HTTPException(status_code=400, detail="Pusty plik")
 
     service = ImageStorageService(db)
-    
+
     try:
-        # 2. Zapisz obraz
-        image_record = await service.save_image(content, file.filename)
-        print(f"--- [DEBUG] Zapisano obraz, ID obrazu: {image_record.id} ---")
-        
-        # 3. Przypisz
-        employee = await service.assign_employee_image(employee_id, image_record)
-        print(f"--- [DEBUG] Przypisano do pracownika: {employee.email} ---")
-        
+        # 1) Find employee
+        emp_res = await db.execute(select(Employees).where(Employees.id == employee_id))
+        employee = emp_res.scalar_one_or_none()
+        if not employee:
+            raise HTTPException(status_code=404, detail="Pracownik nie istnieje")
+
+        old_image_id = employee.image_id
+
+        # 2) Save new embedding (dedup by hash)
+        new_image = await service.save_image(content, file.filename)
+
+        # 3) Assign new image to employee
+        employee.image_id = new_image.id
+        await db.flush()  # важно: чтобы обновление employee.image_id попало в транзакцию до подсчетов
+
+        # 4) Cleanup old image if it is no longer referenced and not the same as new one
+        if old_image_id is not None and old_image_id != new_image.id:
+            cnt_res = await db.execute(
+                select(func.count()).select_from(Employees).where(Employees.image_id == old_image_id)
+            )
+            refs = cnt_res.scalar_one()
+
+            if refs == 0:
+                old_img_res = await db.execute(select(ImageFiles).where(ImageFiles.id == old_image_id))
+                old_img = old_img_res.scalar_one_or_none()
+                if old_img:
+                    await db.delete(old_img)
+
         await db.commit()
-        print("--- [DEBUG] COMMIT wykonany pomyślnie ---")
-        
-        return {"status": "success", "image_id": image_record.id}
+        return {"status": "success", "employee_id": employee_id, "image_id": new_image.id}
+
+    except HTTPException:
+        await db.rollback()
+        raise
     except Exception as e:
         await db.rollback()
-        print(f"--- [DEBUG] WYJĄTEK: {e} ---")
         raise HTTPException(status_code=500, detail=f"Błąd: {e}")
