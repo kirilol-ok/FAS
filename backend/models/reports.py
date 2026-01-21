@@ -6,19 +6,19 @@ from sqlalchemy import (Column, DateTime, Enum, ForeignKey, Integer, String,
 from sqlalchemy.orm import relationship
 
 
-def now_utc() -> datetime:
-    return datetime.utcnow()
+def now_local() -> datetime:
+    return datetime.now()
 
 
 def deletion_date() -> datetime:
-    return datetime.utcnow() + timedelta(days=180)
+    return datetime.now()
 
 
 class Reports(LogBase):
     __tablename__ = "Reports"
 
     id = Column(Integer, primary_key=True, index=True)
-    created_at = Column(DateTime, index=True, default=now_utc, nullable=False)
+    created_at = Column(DateTime, index=True, default=now_local, nullable=False)
     retention_until = Column(DateTime, default=deletion_date, nullable=False)
     employee_id = Column(Integer, index=True)
     status = Column(Enum("OK", "Error", name="report_status"), index=True)

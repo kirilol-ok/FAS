@@ -47,7 +47,7 @@ def dismiss_expired_employees(
         The count of employees that were marked as dismissed.
     """
     if current_time is None:
-        current_time = datetime.utcnow()
+        current_time = datetime.now()
     # Select employees whose dismissal_date is set and not yet marked dismissed
     result = session.execute(
         select(Employees).where(
