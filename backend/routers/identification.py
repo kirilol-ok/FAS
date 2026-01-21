@@ -100,17 +100,17 @@ async def identify_user_by_qr(
 
     # --- SCENARIUSZ 3: ZŁY QR ---
     if not employee:
-        print(f"--- [SCENARIUSZ 3] Nieznany QR. Loguję błąd...")
-        await save_log_background(None, "Error", f"Nieznany kod QR: {qr_code}")
+        print(f"--- [SCENARIUSZ 3] Unknown QR code. Loading error...")
+        await save_log_background(None, "Error", f"Unknown QR code: {qr_code}")
         raise HTTPException(status_code=404, detail="Unknown QR code.")
 
     if employee.dismissed:
-        await save_log_background(employee.id, "Error", "Pracownik zwolniony")
+        await save_log_background(employee.id, "Error", "Employee inactive")
         raise HTTPException(status_code=403, detail="Employee inactive.")
 
     # 2. Przygotowanie do weryfikacji twarzy (embedding w DB)
     if not employee.image_id:
-        await save_log_background(employee.id, "Error", "Brak embeddingu wzorcowego")
+        await save_log_background(employee.id, "Error", "No reference embedding")
         raise HTTPException(status_code=403, detail="No reference embedding (upload photo first).")
 
     img_result = await db.execute(select(ImageFiles).where(ImageFiles.id == employee.image_id))
@@ -119,7 +119,7 @@ async def identify_user_by_qr(
     # ZAMIANA: wcześniej było ref_image_file.data (raw image)
     # Teraz w DB mamy ref_image_file.embedding (pickled bytes)
     if not ref_image_file or not ref_image_file.embedding:
-        await save_log_background(employee.id, "Error", "Embedding wzorcowy uszkodzony/brak")
+        await save_log_background(employee.id, "Error", "Reference embedding corrupted or missing")
         raise HTTPException(status_code=500, detail="Reference embedding corrupted or missing.")
 
     try:
@@ -128,7 +128,7 @@ async def identify_user_by_qr(
             raise ValueError("Bad embedding format")
         reference_embedding = list(reference_embedding)
     except Exception as e:
-        await save_log_background(employee.id, "Error", f"Nie można odczytać embeddingu: {str(e)}")
+        await save_log_background(employee.id, "Error", f"Reference embedding corrupted: {str(e)}")
         raise HTTPException(status_code=500, detail="Reference embedding corrupted (unpickle error).")
 
     # 3. Odczyt i dekodowanie klatki z kamery
@@ -137,7 +137,7 @@ async def identify_user_by_qr(
     frame_bgr = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
     if frame_bgr is None:
-        await save_log_background(employee.id, "Error", "Niepoprawny obraz z kamery")
+        await save_log_background(employee.id, "Error", "Invalid camera frame")
         raise HTTPException(status_code=400, detail="Invalid camera frame.")
 
     print(f"--- [FACE] Weryfikacja embeddingów dla: {employee.first_name} {employee.last_name}...")
@@ -156,9 +156,9 @@ async def identify_user_by_qr(
     # --- DECYZJA KOŃCOWA ---
     if is_verified:
         print(f"--- [SCENARIUSZ 1] Sukces. Zapisuję log...")
-        await save_log_background(employee.id, "OK", "Weryfikacja pomyślna")
+        await save_log_background(employee.id, "OK", "Verification completed")
         return employee
     else:
         print("--- [SCENARIUSZ 2] Twarz niezgodna. Zapisuję log...")
-        await save_log_background(employee.id, "Error", "Twarz niezgodna")
+        await save_log_background(employee.id, "Error", "Face verification failed")
         raise HTTPException(status_code=403, detail="Face verification failed.")

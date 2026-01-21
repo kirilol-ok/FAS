@@ -126,13 +126,11 @@ async def update_employee(
 
 
 
-
 @router.post("/reports/display_raports")
 async def generate_report(
     query_data: ReportRequest,
     db: AsyncSession = Depends(get_postgres_db),
 ):
-
     # 1. datetime conversion
     start_datetime = datetime.combine(query_data.date_from, time.min)
     end_datetime = datetime.combine(query_data.date_to, time.max)
@@ -143,19 +141,21 @@ async def generate_report(
         Reports.created_at <= end_datetime,
     )
 
-    # 3. filter for chosen employee
-    if query_data.employee_id:
-        stmt = stmt.where(Reports.employee_id == query_data.employee_id)
+    # 3. filter for chosen employees (multiple)
+    if query_data.employee_ids:
+        stmt = stmt.where(Reports.employee_id.in_(query_data.employee_ids))
 
-    # 4. data sort - new is up
+    # 4. filter for chosen statuses (multiple) 
+    if query_data.statuses:
+        stmt = stmt.where(Reports.status.in_(query_data.statuses))
+    
+    # 5. data sort - new is up
     stmt = stmt.order_by(Reports.created_at.desc())
 
     result = await db.execute(stmt)
     logs = result.scalars().all()
 
     return logs
-
-
 
 
 

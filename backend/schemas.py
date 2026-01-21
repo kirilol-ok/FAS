@@ -51,6 +51,7 @@ class EmployeeUpdate(BaseModel):
 
 # --- 5. REPORTS QUERY  ---
 class ReportRequest(BaseModel):
-    employee_id: Optional[int] = None
+    employee_ids: Optional[List[int]] = None  
+    statuses: Optional[List[str]] = None      
     date_from: date
     date_to: date
