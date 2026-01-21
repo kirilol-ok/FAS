@@ -104,10 +104,19 @@ async def update_employee(
         worker.last_name = update_data.last_name
     if update_data.email:
         worker.email = update_data.email
+    
+    
+    if update_data.dismissed is not None:
+        worker.dismissed = update_data.dismissed
+        
+        if update_data.dismissed is False:
+            worker.dismissal_date = None
+
     if update_data.dismissal_date is not None:
         worker.dismissal_date = update_data.dismissal_date
-    if update_data.dismissed is not None:    
-        worker.dismissed = update_data.dismissed  
+        worker.dismissed = True
+
+         
     
 
     await db.commit()
