@@ -31,13 +31,25 @@ class EmployeeBase(BaseModel):
     email: EmailStr
     dismissed: bool = False
     dismissal_date: Optional[date] = None  
+    expiration_date: Optional[date] = None
+    hire_date: datetime
+    
 
 class EmployeeCreate(EmployeeBase):
-    pass
+    first_name: str
+    last_name: str
+    email: EmailStr
+    hire_date: datetime     # <--- DODANE (Wymagane)
+    expiration_date: Optional[datetime]
 
 class EmployeeDisplay(EmployeeBase):
     id: int
-    qr_value: Optional[str] = None
+    first_name: str
+    last_name: str
+    email: EmailStr
+    dismissed: bool
+    hire_date: date      # <--- DODANE
+    expiration_date: Optional[date]
 
     model_config = ConfigDict(from_attributes=True) 
 # --- 4. EDIT WORKER  ---
@@ -47,10 +59,12 @@ class EmployeeUpdate(BaseModel):
     email: Optional[EmailStr] = None
     dismissed: Optional[bool] = None
     dismissal_date: Optional[date] = None
+    expiration_date: Optional[date] = None
     
 
 # --- 5. REPORTS QUERY  ---
 class ReportRequest(BaseModel):
-    employee_id: Optional[int] = None
+    employee_ids: Optional[List[int]] = None  
+    statuses: Optional[List[str]] = None      
     date_from: date
     date_to: date

@@ -28,8 +28,17 @@
                 <form id="reportFiltersForm" class="reports-filters">
                     <div class="filter-group">
                         <label for="employeeSelect">Employee</label>
-                        <select id="employeeSelect" name="employee_id">
+                        <select id="employeeSelect" name="employee_id" multiple size="4">
                             <option value="">All employees</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="statusSelect">Status</label>
+                        <select id="statusSelect" name="status" multiple size="4">
+                            <option value="" selected>All statuses</option>
+                            <option value="OK">OK</option>
+                            <option value="Error">Error</option>
                         </select>
                     </div>
 
@@ -48,14 +57,13 @@
                             Generate raport
                         </button>
                     </div>
+                    
+                    <div class="filter-group" style="flex: 0 0 auto;">
+                        <button type="button" id="exportCsvBtn" class="btn btn-secondary" disabled>
+                            Export CSV
+                        </button>
+                    </div>
                 </form>
-
-                <div style="margin-top: 15px;">
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                        <input type="checkbox" id="lockUnlockFilter">
-                        <span style="font-size: 14px; color: #555;">Show only entry/exit events (Lock/Unlock)</span>
-                    </label>
-                </div>
             </div>
 
             <div class="content-header" style="margin-top: 30px;">
@@ -63,7 +71,7 @@
             </div>
             
             <div id="reportsTableContainer" class="report-results-container">
-                <p class="loading">Select the date range and click ‘Generate Report’</p>
+                <p class="loading">Select the date range and click 'Generate Report'</p>
             </div>
         </main>
     </div>

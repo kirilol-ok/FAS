@@ -1,7 +1,26 @@
 $(document).ready(function() {
+    console.log("✅ edit.js v-FINAL załadowany");
     const API_BASE_URL = "http://localhost:8000/admin";
 
-    // 1. ZACHOWANE: Weryfikacja autoryzacji
+    // --- FUNKCJE POMOCNICZE ---
+
+    // Ta funkcja naprawia problem z wyświetlaniem daty
+    function safeDate(value) {
+        if (!value) return ""; // Jeśli null/undefined -> puste pole
+        
+        // Konwertujemy na string (dla bezpieczeństwa)
+        const strVal = String(value);
+        
+        // Jeśli format to ISO (np. 2026-01-21T14:30:00), bierzemy tylko pierwszą część
+        if (strVal.includes("T")) {
+            return strVal.split("T")[0];
+        }
+        
+        // Jeśli to już jest "2026-01-21", zwracamy bez zmian
+        return strVal;
+    }
+
+    // --- 1. WERYFIKACJA I INIT ---
     const authToken = localStorage.getItem('authToken');
     if (!authToken) {
         window.location.href = 'index.html';
@@ -11,7 +30,6 @@ $(document).ready(function() {
     const adminName = localStorage.getItem('adminName');
     if (adminName) $('#adminName').text(adminName);
 
-    // 2. ZACHOWANE: Pobieranie ID z URL
     const urlParams = new URLSearchParams(window.location.search);
     const employeeId = urlParams.get('id');
 
@@ -21,16 +39,16 @@ $(document).ready(function() {
         return;
     }
 
-    // Ładowanie danych (funkcja na dole pliku)
+    // --- 2. ŁADOWANIE DANYCH (To naprawia puste pola) ---
     loadEmployeeData(employeeId);
 
-    // 3. ZACHOWANE: Logika interfejsu (ukrywanie daty zwolnienia)
+    // --- 3. OBSŁUGA INTERFEJSU ---
     $('#dismissCheckbox').on('change', function() {
         if ($(this).is(':checked')) {
             $('#dismissDateGroup').slideDown();
+            // Jeśli zaznaczono, a data pusta -> wstaw dzisiejszą
             if (!$('#dismissDate').val()) {
-                const today = new Date().toISOString().split('T')[0];
-                $('#dismissDate').val(today);
+                $('#dismissDate').val(new Date().toISOString().split('T')[0]);
             }
         } else {
             $('#dismissDateGroup').slideUp();
@@ -38,7 +56,6 @@ $(document).ready(function() {
         }
     });
 
-    // Przyciski nawigacyjne
     $("#backBtn, #cancelBtn").on("click", function() {
         window.location.href = "dashboard.html";
     });
@@ -48,32 +65,40 @@ $(document).ready(function() {
         window.location.href = "index.html";
     });
 
-    // --- GŁÓWNA ZMIANA: OBSŁUGA ZAPISU (ASYNC) ---
+    // --- 4. ZAPISYWANIE DANYCH (SAVE) ---
     $("#editEmployeeForm").on("submit", async function(e) {
         e.preventDefault();
 
-        // 4. ZACHOWANE: Logika przygotowania danych (data zwolnienia)
-        let finalDate = null;
-        let isDismissed = $('#dismissCheckbox').is(':checked');
-
+        // Logika daty zwolnienia
+        let finalDismissalDate = null;
+        const isDismissed = $('#dismissCheckbox').is(':checked');
+        
         if (isDismissed) {
-            finalDate = $('#dismissDate').val();
-            if (!finalDate) {
-                finalDate = new Date().toISOString().split('T')[0]; // Domyślnie dzisiaj
+            finalDismissalDate = $('#dismissDate').val();
+            // Fallback na dzisiaj, jeśli puste
+            if (!finalDismissalDate) {
+                finalDismissalDate = new Date().toISOString().split('T')[0];
             }
         }
 
-        // Obiekt z danymi do PATCH (stara logika)
+        // Pobieranie wartości z inputów (NAPRAWIONE: definicje zmiennych)
+        const hireDateVal = $("#hireDate").val();
+        const expirationDateVal = $("#expirationDate").val();
+
         const updateData = {
             first_name: $("#firstName").val(),
             last_name: $("#lastName").val(),
             email: $("#email").val(),
             dismissed: isDismissed,
-            dismissal_date: finalDate 
+            dismissal_date: finalDismissalDate,
+            hire_date: hireDateVal ? hireDateVal : null,
+            expiration_date: expirationDateVal ? expirationDateVal : null
         };
 
         try {
-            // KROK 1: Aktualizacja danych tekstowych i statusu (PATCH)
+            console.log("🚀 Wysyłanie update:", updateData);
+
+            // KROK 1: PATCH danych tekstowych
             await $.ajax({
                 url: `${API_BASE_URL}/update_employees/${employeeId}`,
                 method: "PATCH",
@@ -81,11 +106,10 @@ $(document).ready(function() {
                 data: JSON.stringify(updateData)
             });
 
-            // KROK 2: NOWOŚĆ - Upload zdjęcia (tylko jeśli wybrano plik)
+            // KROK 2: Upload zdjęcia (jeśli wybrano nowe)
             const fileInput = document.getElementById("employeePhoto");
-            
             if (fileInput && fileInput.files.length > 0) {
-                console.log("Wykryto nowe zdjęcie. Wysyłanie...");
+                console.log("📸 Wykryto nowe zdjęcie. Wysyłanie...");
                 const formData = new FormData();
                 formData.append("file", fileInput.files[0]);
 
@@ -98,28 +122,26 @@ $(document).ready(function() {
                 });
             }
 
-            // Sukces - powrót
             alert("Zapisano zmiany!");
             window.location.href = "dashboard.html";
 
         } catch (xhr) {
-            // ZACHOWANE: Obsługa błędów z backendu (Pydantic validation errors)
-            console.error("Błąd zapisu:", xhr);
+            console.error("❌ Błąd zapisu:", xhr);
             let msg = "Wystąpił błąd.";
             
             if (xhr.responseJSON && xhr.responseJSON.detail) {
-                if (Array.isArray(xhr.responseJSON.detail)) {
-                    // Jeśli lista błędów walidacji
-                    msg += "\n" + xhr.responseJSON.detail.map(e => e.msg).join(", ");
+                const detail = xhr.responseJSON.detail;
+                if (Array.isArray(detail)) {
+                    msg += "\n" + detail.map(e => e.msg).join(", ");
                 } else {
-                    msg += "\n" + xhr.responseJSON.detail;
+                    msg += "\n" + detail;
                 }
             }
             alert(msg);
         }
     });
 
-    // 5. ZACHOWANE: Logika usuwania pracownika
+    // --- 5. USUWANIE ---
     $("#deleteBtn").on("click", function() {
         if (confirm("Czy na pewno chcesz usunąć pracownika?")) {
             $.ajax({
@@ -137,29 +159,39 @@ $(document).ready(function() {
         }
     });
 
-    // 6. ZACHOWANE: Funkcja ładująca dane do formularza
+    // --- 6. FUNKCJA ŁADUJĄCA DANE ---
     function loadEmployeeData(id) {
+        console.log("📥 Pobieranie danych dla ID:", id);
+        
         $.ajax({
             url: `${API_BASE_URL}/employees/${id}`,
             method: "GET",
             success: function(employee) {
+                console.log("✅ Otrzymano dane z backendu:", employee);
+
+                // ID (readonly)
                 $('#employeeId').val(employee.id);
+                
+                // Teksty
                 $('#firstName').val(employee.first_name);
                 $('#lastName').val(employee.last_name);
                 $('#email').val(employee.email);
 
-                // Ustawienie checkboxa i daty, jeśli pracownik zwolniony
+                // DATY - Używamy funkcji safeDate!
+                // To kluczowy moment - funkcja przytnie "T" jeśli trzeba
+                $('#hireDate').val(safeDate(employee.hire_date));
+                $('#expirationDate').val(safeDate(employee.expiration_date));
+
+                // Zwolnienie
                 if (employee.dismissed) {
                     $('#dismissCheckbox').prop('checked', true);
                     $('#dismissDateGroup').show();
-                    
-                    if (employee.dismissal_date) {
-                        $('#dismissDate').val(employee.dismissal_date.split('T')[0]);
-                    }
+                    $('#dismissDate').val(safeDate(employee.dismissal_date));
                 }
             },
             error: function(xhr) {
-                alert("Nie znaleziono pracownika.");
+                console.error("Błąd pobierania:", xhr);
+                alert("Nie udało się pobrać danych pracownika.");
                 window.location.href = "dashboard.html";
             }
         });

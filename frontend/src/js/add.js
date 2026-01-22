@@ -1,23 +1,59 @@
 $(document).ready(function() {
+    console.log("✅ add.js v6 - Z funkcją dodawania zdjęcia");
     const API_BASE_URL = "http://localhost:8000/admin";
 
-    // Zachowane: Obsługa przycisków powrotu
-    $("#backBtn, #cancelBtn").on("click", function() {
+    // --- 1. FUNKCJE POMOCNICZE (DATY) ---
+    function getTodayString() {
+        return new Date().toISOString().split('T')[0];
+    }
+    function getFutureString(months = 6) {
+        const d = new Date();
+        d.setMonth(d.getMonth() + months);
+        return d.toISOString().split('T')[0];
+    }
+
+    // Ustawienie domyślnych dat przy wejściu na stronę
+    $("#hireDate").val(getTodayString());
+    $("#expirationDate").val(getFutureString(6));
+
+    // --- 2. OBSŁUGA PRZYCISKÓW ---
+    $("#backBtn, #cancelBtn").on("click", function(e) {
+        e.preventDefault();
         window.location.href = "dashboard.html";
     });
 
-    $("#addEmployeeForm").on("submit", async function(e) {
-        e.preventDefault();
+    // --- 3. GŁÓWNA LOGIKA DODAWANIA ---
+    $("#addBtn").on("click", async function(e) {
+        e.preventDefault(); // Blokada przeładowania
 
-        // 1. ZACHOWANE: Pobieranie danych tekstowych tak jak wcześniej
+        // A. ZABEZPIECZENIE DAT (Wpisz domyślne, jeśli puste)
+        if (!$("#hireDate").val()) $("#hireDate").val(getTodayString());
+        if (!$("#expirationDate").val()) $("#expirationDate").val(getFutureString(6));
+
+        // B. WALIDACJA FORMULARZA
+        const form = document.getElementById("addEmployeeForm");
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+        // C. BLOKADA PRZYCISKU
+        const $btn = $(this);
+        $btn.prop("disabled", true).text("Wysyłanie...");
+
+        // D. PRZYGOTOWANIE DANYCH
         const employeeData = {
             first_name: $("#firstName").val(),
             last_name: $("#lastName").val(),
-            email: $("#email").val()
+            email: $("#email").val(),
+            hire_date: $("#hireDate").val(),
+            expiration_date: $("#expirationDate").val() || null
         };
 
         try {
-            // KROK 1: Tworzenie pracownika (stara logika)
+            console.log("🚀 KROK 1: Tworzenie pracownika...", employeeData);
+
+            // --- KROK 1: AJAX - CREATE EMPLOYEE ---
             const createResponse = await $.ajax({
                 url: `${API_BASE_URL}/create_employee`, 
                 method: "POST",
@@ -25,44 +61,49 @@ $(document).ready(function() {
                 data: JSON.stringify(employeeData)
             });
 
-            console.log("Pracownik utworzony, ID:", createResponse.id);
+            console.log("✅ Pracownik utworzony. ID:", createResponse.id);
+            let message = "Pracownik dodany pomyślnie.";
 
-            // KROK 2: NOWOŚĆ - Sprawdzenie i wysyłka zdjęcia
-            // Musisz dodać <input type="file" id="employeePhoto"> w pliku HTML
+            // --- KROK 2: AJAX - UPLOAD ZDJĘCIA ---
             const fileInput = document.getElementById("employeePhoto");
             
+            // Sprawdzamy, czy użytkownik wybrał plik
             if (fileInput && fileInput.files.length > 0) {
-                console.log("Wykryto zdjęcie. Rozpoczynam upload...");
+                console.log("📸 KROK 2: Wykryto zdjęcie. Wysyłanie...");
                 
                 const formData = new FormData();
                 formData.append("file", fileInput.files[0]);
 
-                // Wysyłamy na nowy endpoint (zakładając, że dodałeś go do admin.py)
-                await $.ajax({
-                    url: `${API_BASE_URL}/employees/${createResponse.id}/upload_photo`,
-                    method: "POST",
-                    processData: false, // Wymagane dla plików
-                    contentType: false, // Wymagane dla plików
-                    data: formData
-                });
-                
-                alert(`Dodano pracownika ${createResponse.last_name} oraz wgrano zdjęcie.`);
+                try {
+                    await $.ajax({
+                        // Używamy ID utworzonego przed chwilą pracownika
+                        url: `${API_BASE_URL}/employees/${createResponse.id}/upload_photo`,
+                        method: "POST",
+                        processData: false, // Ważne dla plików!
+                        contentType: false, // Ważne dla plików!
+                        data: formData
+                    });
+                    
+                    console.log("✅ Zdjęcie wgrane i embedding utworzony.");
+                    message += "\nZdjęcie zostało dodane.";
+                } catch (photoError) {
+                    console.error("❌ Błąd zdjęcia:", photoError);
+                    message += "\nUWAGA: Pracownik dodany, ale wystąpił błąd przy wgrywaniu zdjęcia.";
+                }
             } else {
-                // Jeśli nie wybrano zdjęcia, komunikat jak dawniej
-                alert(`Dodano pracownika: ${createResponse.first_name} ${createResponse.last_name}`);
+                console.log("ℹ️ Nie wybrano zdjęcia - pomijam ten krok.");
             }
 
-            // ZACHOWANE: Powrót do dashboardu
+            // E. FINALIZACJA
+            alert(message);
             window.location.href = "dashboard.html";
 
-        } catch (xhr) {
-            // ZACHOWANE: Obsługa błędów
-            console.error("Błąd dodawania: ", xhr);
-            let msg = "Błąd podczas dodawania pracownika.";
-            if (xhr.responseJSON && xhr.responseJSON.detail) {
-                msg += "\nSzczegóły: " + xhr.responseJSON.detail;
-            }
-            alert(msg);
+        } catch (error) {
+            console.error("❌ BŁĄD:", error);
+            $btn.prop("disabled", false).text("Add Employee");
+            
+            let errMsg = "Błąd: " + (error.responseJSON?.detail || "Nieznany błąd serwera");
+            alert(errMsg);
         }
     });
 });

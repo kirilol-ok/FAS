@@ -9,7 +9,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from backend.models.admins import Admins
-
+from backend.services.security import get_password_hash
 from backend.models import admins, employees, image_files
 from backend.models.base import CoreBase, LogBase
 
@@ -107,18 +107,19 @@ async def init_all_db() -> None:
             # Sprawdź czy admin istnieje
             result = await db.execute(select(Admins).where(Admins.email == "admin@example.com"))
             existing_admin = result.scalars().first()
+            
 
             if not existing_admin:
                 print(" -> [ADMIN] Brak admina. Tworzę nowe konto...")
                 
-                # WAŻNE: Haszujemy hasło "admin"
                 
-                
+                hashed_pwd = get_password_hash(POSTGRES_PASSWORD)
+
                 new_admin = Admins(
                     first_name="Admin",       # <--- NAPRAWIONO (było None)
                     last_name="System",       # <--- NAPRAWIONO (było None)
                     email="admin@example.com",
-                    password="admin", # <--- NAPRAWIONO (jest hash)
+                    password=hashed_pwd, # <--- NAPRAWIONO (jest hash)
                     qr_value="admin_qr_code"
                 )
                 db.add(new_admin)

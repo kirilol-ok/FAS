@@ -7,6 +7,8 @@ services:
     env_file:
       - .env
     working_dir: /app
+    environment:
+      - TZ=Europe/Warsaw
     volumes:
       - ./:/app
     depends_on:
@@ -23,6 +25,8 @@ services:
       dockerfile: frontend/Dockerfile.frontend
     container_name: frontend_dev
     working_dir: /app
+    environment:
+      - TZ=Europe/Warsaw
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -44,6 +48,8 @@ services:
       - .env
     ports:
       - "5432:5432"
+    environment:
+      - TZ=Europe/Warsaw
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -55,6 +61,8 @@ services:
     env_file:
       - .env
     working_dir: /app
+    environment:
+      - TZ=Europe/Warsaw
     volumes:
       - ./:/app
     depends_on:
