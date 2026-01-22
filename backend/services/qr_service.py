@@ -1,6 +1,7 @@
+from typing import Optional, Tuple
+
 import cv2 as cv
 import numpy as np
-from typing import Optional, Tuple
 
 
 class CodeDetector:
@@ -24,7 +25,9 @@ class CodeDetector:
         text, _, _ = self.detector.detectAndDecode(frame)
         return text if text else None
 
-    def detect_qr_with_points(self, frame) -> Tuple[Optional[str], Optional[np.ndarray]]:
+    def detect_qr_with_points(
+        self, frame
+    ) -> Tuple[Optional[str], Optional[np.ndarray]]:
         if frame is None:
             return None, None
         text, points, _ = self.detector.detectAndDecode(frame)

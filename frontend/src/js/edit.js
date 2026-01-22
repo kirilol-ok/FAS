@@ -1,58 +1,84 @@
 $(document).ready(function() {
-    console.log("✅ edit.js v-FINAL załadowany");
+    console.log("✅ edit.js v9 - Auto date correction");
     const API_BASE_URL = "http://localhost:8000/admin";
 
-    // --- FUNKCJE POMOCNICZE ---
-
-    // Ta funkcja naprawia problem z wyświetlaniem daty
+    // --- HELPERS ---
     function safeDate(value) {
-        if (!value) return ""; // Jeśli null/undefined -> puste pole
-        
-        // Konwertujemy na string (dla bezpieczeństwa)
+        if (!value) return "";
         const strVal = String(value);
-        
-        // Jeśli format to ISO (np. 2026-01-21T14:30:00), bierzemy tylko pierwszą część
-        if (strVal.includes("T")) {
-            return strVal.split("T")[0];
+        return strVal.includes("T") ? strVal.split("T")[0] : strVal;
+    }
+
+    // Update min constraints and auto-correct invalid dates
+    function updateDateConstraintsAndCorrect() {
+        const hireVal = $("#hireDate").val();
+
+        if (hireVal) {
+            // 1) Set MIN constraints
+            $("#dismissDate").attr("min", hireVal);
+            $("#expirationDate").attr("min", hireVal);
+
+            // 2) Auto-correct dismissal date if earlier than hire date
+            const dismissVal = $("#dismissDate").val();
+            if (dismissVal && dismissVal < hireVal) {
+                console.log("⚠️ Dismissal date was earlier than hire date — auto-correcting.");
+                $("#dismissDate").val(hireVal);
+            }
+
+            // 3) Auto-correct expiration date if earlier than hire date
+            const expireVal = $("#expirationDate").val();
+            if (expireVal && expireVal < hireVal) {
+                console.log("⚠️ Expiration date was earlier than hire date — auto-correcting.");
+                $("#expirationDate").val(hireVal);
+            }
         }
-        
-        // Jeśli to już jest "2026-01-21", zwracamy bez zmian
-        return strVal;
     }
 
-    // --- 1. WERYFIKACJA I INIT ---
-    const authToken = localStorage.getItem('authToken');
-    if (!authToken) {
-        window.location.href = 'index.html';
-        return;
-    }
+    // --- INIT ---
+    const authToken = localStorage.getItem("authToken");
+    if (!authToken) { window.location.href = "index.html"; return; }
 
-    const adminName = localStorage.getItem('adminName');
-    if (adminName) $('#adminName').text(adminName);
+    const adminName = localStorage.getItem("adminName");
+    if (adminName) $("#adminName").text(adminName);
 
     const urlParams = new URLSearchParams(window.location.search);
-    const employeeId = urlParams.get('id');
+    const employeeId = urlParams.get("id");
 
     if (!employeeId) {
-        alert("Błąd: Brak ID pracownika.");
+        alert("Missing employee ID.");
         window.location.href = "dashboard.html";
         return;
     }
 
-    // --- 2. ŁADOWANIE DANYCH (To naprawia puste pola) ---
+    // Load employee data
     loadEmployeeData(employeeId);
 
-    // --- 3. OBSŁUGA INTERFEJSU ---
-    $('#dismissCheckbox').on('change', function() {
-        if ($(this).is(':checked')) {
-            $('#dismissDateGroup').slideDown();
-            // Jeśli zaznaczono, a data pusta -> wstaw dzisiejszą
-            if (!$('#dismissDate').val()) {
-                $('#dismissDate').val(new Date().toISOString().split('T')[0]);
+    // --- UI EVENTS ---
+
+    // Key moment: hire date change triggers corrections
+    $("#hireDate").on("change", function() {
+        updateDateConstraintsAndCorrect();
+    });
+
+    $("#dismissCheckbox").on("change", function() {
+        if ($(this).is(":checked")) {
+            $("#dismissDateGroup").slideDown();
+
+            // If empty, set a default date
+            if (!$("#dismissDate").val()) {
+                const today = new Date().toISOString().split("T")[0];
+                const hireVal = $("#hireDate").val();
+
+                // If "today" is earlier than hire date, use hire date
+                if (hireVal && today < hireVal) {
+                    $("#dismissDate").val(hireVal);
+                } else {
+                    $("#dismissDate").val(today);
+                }
             }
         } else {
-            $('#dismissDateGroup').slideUp();
-            $('#dismissDate').val('');
+            $("#dismissDateGroup").slideUp();
+            $("#dismissDate").val("");
         }
     });
 
@@ -65,25 +91,35 @@ $(document).ready(function() {
         window.location.href = "index.html";
     });
 
-    // --- 4. ZAPISYWANIE DANYCH (SAVE) ---
+    // --- SAVE ---
     $("#editEmployeeForm").on("submit", async function(e) {
         e.preventDefault();
 
-        // Logika daty zwolnienia
-        let finalDismissalDate = null;
-        const isDismissed = $('#dismissCheckbox').is(':checked');
-        
-        if (isDismissed) {
-            finalDismissalDate = $('#dismissDate').val();
-            // Fallback na dzisiaj, jeśli puste
-            if (!finalDismissalDate) {
-                finalDismissalDate = new Date().toISOString().split('T')[0];
-            }
-        }
-
-        // Pobieranie wartości z inputów (NAPRAWIONE: definicje zmiennych)
         const hireDateVal = $("#hireDate").val();
         const expirationDateVal = $("#expirationDate").val();
+
+        // Dismissal logic
+        const isDismissed = $("#dismissCheckbox").is(":checked");
+        let finalDismissalDate = null;
+
+        if (isDismissed) {
+            finalDismissalDate = $("#dismissDate").val();
+            if (!finalDismissalDate) finalDismissalDate = new Date().toISOString().split("T")[0];
+        }
+
+        // FINAL VALIDATION (in case auto-correction didn't run)
+        if (hireDateVal) {
+            if (isDismissed && finalDismissalDate && finalDismissalDate < hireDateVal) {
+                alert("⛔ ERROR: Dismissal date cannot be earlier than hire date!");
+                $("#dismissDate").val(hireDateVal);
+                return;
+            }
+            if (expirationDateVal && expirationDateVal < hireDateVal) {
+                alert("⛔ ERROR: Expiration date cannot be earlier than hire date!");
+                $("#expirationDate").val(hireDateVal);
+                return;
+            }
+        }
 
         const updateData = {
             first_name: $("#firstName").val(),
@@ -96,9 +132,6 @@ $(document).ready(function() {
         };
 
         try {
-            console.log("🚀 Wysyłanie update:", updateData);
-
-            // KROK 1: PATCH danych tekstowych
             await $.ajax({
                 url: `${API_BASE_URL}/update_employees/${employeeId}`,
                 method: "PATCH",
@@ -106,13 +139,10 @@ $(document).ready(function() {
                 data: JSON.stringify(updateData)
             });
 
-            // KROK 2: Upload zdjęcia (jeśli wybrano nowe)
             const fileInput = document.getElementById("employeePhoto");
             if (fileInput && fileInput.files.length > 0) {
-                console.log("📸 Wykryto nowe zdjęcie. Wysyłanie...");
                 const formData = new FormData();
                 formData.append("file", fileInput.files[0]);
-
                 await $.ajax({
                     url: `${API_BASE_URL}/employees/${employeeId}/upload_photo`,
                     method: "POST",
@@ -122,76 +152,45 @@ $(document).ready(function() {
                 });
             }
 
-            alert("Zapisano zmiany!");
+            alert("Changes saved!");
             window.location.href = "dashboard.html";
 
         } catch (xhr) {
-            console.error("❌ Błąd zapisu:", xhr);
-            let msg = "Wystąpił błąd.";
-            
-            if (xhr.responseJSON && xhr.responseJSON.detail) {
-                const detail = xhr.responseJSON.detail;
-                if (Array.isArray(detail)) {
-                    msg += "\n" + detail.map(e => e.msg).join(", ");
-                } else {
-                    msg += "\n" + detail;
-                }
-            }
-            alert(msg);
+            console.error("Save error:", xhr);
+
+            let msg =
+                xhr.responseJSON && xhr.responseJSON.detail
+                    ? xhr.responseJSON.detail
+                    : "An error occurred.";
+
+            // If FastAPI validation errors come as array -> join messages
+            alert(Array.isArray(msg) ? msg.map(e => e.msg).join("\n") : msg);
         }
     });
 
-    // --- 5. USUWANIE ---
-    $("#deleteBtn").on("click", function() {
-        if (confirm("Czy na pewno chcesz usunąć pracownika?")) {
-            $.ajax({
-                url: `${API_BASE_URL}/delete_employees/${employeeId}`,
-                method: "DELETE",
-                success: function() {
-                    alert("Pracownik został usunięty.");
-                    window.location.href = "dashboard.html";
-                },
-                error: function(xhr) {
-                    alert("Błąd usuwania.");
-                    console.error(xhr);
-                }
-            });
-        }
-    });
-
-    // --- 6. FUNKCJA ŁADUJĄCA DANE ---
     function loadEmployeeData(id) {
-        console.log("📥 Pobieranie danych dla ID:", id);
-        
         $.ajax({
             url: `${API_BASE_URL}/employees/${id}`,
             method: "GET",
             success: function(employee) {
-                console.log("✅ Otrzymano dane z backendu:", employee);
+                $("#employeeId").val(employee.id);
+                $("#firstName").val(employee.first_name);
+                $("#lastName").val(employee.last_name);
+                $("#email").val(employee.email);
+                $("#hireDate").val(safeDate(employee.hire_date));
+                $("#expirationDate").val(safeDate(employee.expiration_date));
 
-                // ID (readonly)
-                $('#employeeId').val(employee.id);
-                
-                // Teksty
-                $('#firstName').val(employee.first_name);
-                $('#lastName').val(employee.last_name);
-                $('#email').val(employee.email);
-
-                // DATY - Używamy funkcji safeDate!
-                // To kluczowy moment - funkcja przytnie "T" jeśli trzeba
-                $('#hireDate').val(safeDate(employee.hire_date));
-                $('#expirationDate').val(safeDate(employee.expiration_date));
-
-                // Zwolnienie
                 if (employee.dismissed) {
-                    $('#dismissCheckbox').prop('checked', true);
-                    $('#dismissDateGroup').show();
-                    $('#dismissDate').val(safeDate(employee.dismissal_date));
+                    $("#dismissCheckbox").prop("checked", true);
+                    $("#dismissDateGroup").show();
+                    $("#dismissDate").val(safeDate(employee.dismissal_date));
                 }
+
+                // Apply constraints after load
+                updateDateConstraintsAndCorrect();
             },
-            error: function(xhr) {
-                console.error("Błąd pobierania:", xhr);
-                alert("Nie udało się pobrać danych pracownika.");
+            error: function() {
+                alert("Employee not found.");
                 window.location.href = "dashboard.html";
             }
         });

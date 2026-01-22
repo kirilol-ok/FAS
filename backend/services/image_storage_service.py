@@ -1,13 +1,3 @@
-"""
-Enhanced image storage service that stores and retrieves face embeddings.
-
-This service computes a face embedding for each uploaded image using DeepFace
-and stores the pickled embedding in the database. The hash associated with each
-record is derived from the serialized embedding.
-
-IMPORTANT: this version is ASYNC and works with SQLAlchemy AsyncSession.
-"""
-
 from __future__ import annotations
 
 import hashlib
@@ -27,7 +17,6 @@ from backend.models.image_files import ImageFiles
 
 
 class ImageStorageService:
-    """Service for computing and persisting face embeddings (async)."""
 
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
@@ -44,7 +33,6 @@ class ImageStorageService:
         return mime or "application/octet-stream"
 
     def _compute_embedding(self, image_bytes: bytes) -> list[float]:
-        """Compute embedding from image bytes (sync, DeepFace is sync)."""
         with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp_file:
             tmp_file.write(image_bytes)
             tmp_path = tmp_file.name
@@ -70,12 +58,9 @@ class ImageStorageService:
             except OSError:
                 pass
 
-    async def save_image(self, data: bytes, filename: Optional[str] = None) -> ImageFiles:
-        """
-        Persist a face embedding computed from the given image bytes.
-        If an identical embedding already exists (determined by its hash),
-        the existing record is returned.
-        """
+    async def save_image(
+        self, data: bytes, filename: Optional[str] = None
+    ) -> ImageFiles:
         if not data:
             raise ValueError("Image data is empty")
 
@@ -83,7 +68,9 @@ class ImageStorageService:
         embedding_bytes = pickle.dumps(embedding_vector)
         hash_hex = self._sha256_hex(embedding_bytes)
 
-        res = await self.session.execute(select(ImageFiles).where(ImageFiles.hash == hash_hex))
+        res = await self.session.execute(
+            select(ImageFiles).where(ImageFiles.hash == hash_hex)
+        )
         existing = res.scalar_one_or_none()
         if existing:
             return existing
@@ -101,22 +88,30 @@ class ImageStorageService:
             return image
         except IntegrityError:
             await self.session.rollback()
-            res = await self.session.execute(select(ImageFiles).where(ImageFiles.hash == hash_hex))
+            res = await self.session.execute(
+                select(ImageFiles).where(ImageFiles.hash == hash_hex)
+            )
             existing = res.scalar_one_or_none()
             if existing:
                 return existing
             raise
 
-    async def assign_employee_image(self, employee_id: int, image: ImageFiles) -> Employees:
+    async def assign_employee_image(
+        self, employee_id: int, image: ImageFiles
+    ) -> Employees:
         """Associate a stored embedding with an employee."""
-        res = await self.session.execute(select(Employees).where(Employees.id == employee_id))
-        employee = res.scalar_one()  # бросит исключение если нет сотрудника
+        res = await self.session.execute(
+            select(Employees).where(Employees.id == employee_id)
+        )
+        employee = res.scalar_one()
         employee.image = image
         await self.session.flush()
         return employee
 
     async def get_embedding(self, image_id: int) -> Optional[list[float]]:
-        res = await self.session.execute(select(ImageFiles).where(ImageFiles.id == image_id))
+        res = await self.session.execute(
+            select(ImageFiles).where(ImageFiles.id == image_id)
+        )
         image = res.scalar_one_or_none()
         if not image:
             return None
@@ -129,7 +124,9 @@ class ImageStorageService:
         if not hash_hex:
             raise ValueError("Hash value must be provided")
 
-        res = await self.session.execute(select(ImageFiles).where(ImageFiles.hash == hash_hex))
+        res = await self.session.execute(
+            select(ImageFiles).where(ImageFiles.hash == hash_hex)
+        )
         image = res.scalar_one_or_none()
         if not image:
             return None

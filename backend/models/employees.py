@@ -1,6 +1,8 @@
-from backend.models.base import CoreBase
-from sqlalchemy import Column, Date, DateTime, ForeignKey, Integer, String, Boolean 
+from sqlalchemy import (Boolean, Column, Date, DateTime, ForeignKey, Integer,
+                        String)
 from sqlalchemy.orm import relationship
+
+from backend.models.base import CoreBase
 
 
 class Employees(CoreBase):
