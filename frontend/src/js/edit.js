@@ -80,7 +80,8 @@ $(document).ready(function () {
         }
     });
 
-    $("#deleteBtn").on("click", async function () {
+    // DELETE EMPLOYEE
+    $("#deleteBtn").on("click", async function() {
         if (!confirm("Are you sure you want to permanently delete this employee? This action cannot be undone.")) {
             return;
         }
@@ -93,18 +94,19 @@ $(document).ready(function () {
 
             alert("Employee deleted successfully!");
             window.location.href = "dashboard.html";
+
         } catch (xhr) {
             console.error("Delete error:", xhr);
-
-            const msg = xhr.responseJSON && xhr.responseJSON.detail
+            
+            let msg = xhr.responseJSON && xhr.responseJSON.detail
                 ? xhr.responseJSON.detail
                 : "An error occurred while deleting the employee.";
-
+            
             alert(msg);
         }
     });
 
-    $("#backBtn, #cancelBtn").on("click", function () {
+    $("#backBtn, #cancelBtn").on("click", function() {
         window.location.href = "dashboard.html";
     });
 
