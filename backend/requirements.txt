@@ -105,3 +105,4 @@ Werkzeug==3.1.5
 wheel==0.45.1
 wrapt==2.0.1
 bcrypt==4.0.1
+passlib

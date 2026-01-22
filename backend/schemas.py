@@ -43,7 +43,7 @@ class EmployeeCreate(EmployeeBase):
     expiration_date: Optional[datetime]
 
 class EmployeeDisplay(EmployeeBase):
-    id: int
+    id: str
     first_name: str
     last_name: str
     email: EmailStr
@@ -64,7 +64,7 @@ class EmployeeUpdate(BaseModel):
 
 # --- 5. REPORTS QUERY  ---
 class ReportRequest(BaseModel):
-    employee_ids: Optional[List[int]] = None  
+    employee_ids: Optional[List[str]] = None  
     statuses: Optional[List[str]] = None      
     date_from: date
     date_to: date

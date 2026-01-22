@@ -1,12 +1,16 @@
 from backend.models.base import CoreBase
 from sqlalchemy import Column, Date, DateTime, ForeignKey, Integer, String, Boolean 
 from sqlalchemy.orm import relationship
+import uuid
+
+def generate_uuid():
+    return str(uuid.uuid4())
 
 
 class Employees(CoreBase):
     __tablename__ = "Employees"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(String, primary_key=True, default=generate_uuid, index=True)
     first_name = Column(String, index=True, nullable=False)
     last_name = Column(String, index=True, nullable=False)
     email = Column(String, index=True, nullable=False, unique=True)

@@ -64,7 +64,7 @@ async def get_workers_table(db: AsyncSession = Depends(get_sqlite_db)):
 
 
 @router.get("/employees/{employee_id}", response_model=EmployeeDisplay)
-async def get_employee_details(employee_id: int, db: AsyncSession = Depends(get_sqlite_db)):
+async def get_employee_details(employee_id: str, db: AsyncSession = Depends(get_sqlite_db)):
     result = await db.execute(select(Employees).where(Employees.id == employee_id))
     worker = result.scalars().first()
     if not worker:
@@ -74,7 +74,7 @@ async def get_employee_details(employee_id: int, db: AsyncSession = Depends(get_
 
 @router.patch("/update_employees/{employee_id}")
 async def update_employee(
-    employee_id: int, 
+    employee_id: str, 
     update_data: EmployeeUpdate, 
     db: AsyncSession = Depends(get_sqlite_db)
 ):
@@ -244,7 +244,7 @@ async def create_employee(
 # --- NAPRAWIONA FUNKCJA ZWALNIANIA ---
 @router.post("/employees/{employee_id}/dismiss", response_model=EmployeeDisplay)
 async def dismiss_employee(
-    employee_id: int,
+    employee_id: str,
     dismissal_date: date = None, 
     db: AsyncSession = Depends(get_sqlite_db)
 ):
@@ -279,7 +279,7 @@ async def dismiss_employee(
 
 @router.delete("/delete_employees/{employee_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_employee(
-    employee_id: int,
+    employee_id: str,
     db: AsyncSession = Depends(get_sqlite_db)
 ):
     # 1) find employee
@@ -329,7 +329,7 @@ async def generate_report_alias(
 
 @router.post("/employees/{employee_id}/upload_photo")
 async def upload_employee_photo(
-    employee_id: int,
+    employee_id: str,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_sqlite_db),
 ):
