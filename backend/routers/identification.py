@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 import pickle
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
@@ -103,6 +103,19 @@ async def identify_user_by_qr(
         print(f"--- [SCENARIUSZ 3] Unknown QR code. Loading error...")
         await save_log_background(None, "Error", f"Unknown QR code: {qr_code}")
         raise HTTPException(status_code=404, detail="Unknown QR code.")
+    
+    if employee.expiration_date and employee.expiration_date < date.today():
+        # Jeśli data minęła, a pracownik jeszcze nie jest zwolniony:
+        if not employee.dismissed:
+            print(f"⚠️ Konto wygasło dla {employee.email}. Zwalniam automatycznie.")
+            employee.dismissed = True
+            employee.dismissal_date = date.today()
+            await db.commit() 
+            await db.refresh(employee)
+            
+        await save_log_background(employee.id, "Error", "Account expired")
+        raise HTTPException(status_code=403, detail="Konto wygasło (Account expired).")
+    # ------------------------------------------------
 
     if employee.dismissed:
         await save_log_background(employee.id, "Error", "Employee inactive")
