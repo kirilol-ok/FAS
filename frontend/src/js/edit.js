@@ -1,5 +1,5 @@
 $(document).ready(function() {
-    console.log("✅ edit.js v9 - Auto date correction");
+    console.log("✅ edit.js v10 - Delete button fixed");
     const API_BASE_URL = "http://localhost:8000/admin";
 
     // --- HELPERS ---
@@ -79,6 +79,32 @@ $(document).ready(function() {
         } else {
             $("#dismissDateGroup").slideUp();
             $("#dismissDate").val("");
+        }
+    });
+
+    // DELETE EMPLOYEE
+    $("#deleteBtn").on("click", async function() {
+        if (!confirm("Are you sure you want to permanently delete this employee? This action cannot be undone.")) {
+            return;
+        }
+
+        try {
+            await $.ajax({
+                url: `${API_BASE_URL}/delete_employees/${employeeId}`,
+                method: "DELETE"
+            });
+
+            alert("Employee deleted successfully!");
+            window.location.href = "dashboard.html";
+
+        } catch (xhr) {
+            console.error("Delete error:", xhr);
+            
+            let msg = xhr.responseJSON && xhr.responseJSON.detail
+                ? xhr.responseJSON.detail
+                : "An error occurred while deleting the employee.";
+            
+            alert(msg);
         }
     });
 
