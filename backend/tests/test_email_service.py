@@ -89,9 +89,16 @@ class DummyConnectionConfig:
 class DummyUploadFile:
     """Simple replacement for fastapi.UploadFile used in attachments."""
 
-    def __init__(self, file: BytesIO, filename: str) -> None:
+    def __init__(self, file, *, size=None, filename=None, headers=None, **kwargs) -> None:
         self.file = file
         self.filename = filename
+        self.size = size
+        self.headers = headers
+
+        try:
+            self.content_type = headers.get("content-type") if headers else None
+        except Exception:
+            self.content_type = None
 
 
 @pytest.fixture(autouse=True)
