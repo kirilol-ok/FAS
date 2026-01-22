@@ -24,6 +24,7 @@ app.include_router(identification.router)
 
 app.mount("/static", StaticFiles(directory="frontend/src"), name="static")
 
+
 @app.get("/", include_in_schema=False)
 def camera_page():
     return FileResponse("frontend/src/camera.html")

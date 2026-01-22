@@ -48,12 +48,18 @@ class CameraInput:
         # Storage service for embeddings
         self.image_storage_service = image_storage_service
         # Expected image/embedding identifiers
-        self.expected_image_hash = expected_image_hash or os.getenv("EXPECTED_IMAGE_HASH")
-        self.expected_image_path = expected_image_path or os.getenv("EXPECTED_IMAGE_PATH")
+        self.expected_image_hash = expected_image_hash or os.getenv(
+            "EXPECTED_IMAGE_HASH"
+        )
+        self.expected_image_path = expected_image_path or os.getenv(
+            "EXPECTED_IMAGE_PATH"
+        )
         # Maximum time to wait after detecting a QR code for a successful match
         self.verification_timeout = verification_timeout
 
-    def _get_reference(self) -> Optional[Tuple[str, Union[str, Tuple[bytes, str], Sequence[float]]]]:
+    def _get_reference(
+        self,
+    ) -> Optional[Tuple[str, Union[str, Tuple[bytes, str], Sequence[float]]]]:
         """
         Determine which reference data should be used for verification.
 
@@ -69,12 +75,16 @@ class CameraInput:
         if self.expected_image_hash and self.image_storage_service:
             # Attempt to retrieve an embedding directly
             if hasattr(self.image_storage_service, "get_embedding_by_hash"):
-                embedding = self.image_storage_service.get_embedding_by_hash(self.expected_image_hash)
+                embedding = self.image_storage_service.get_embedding_by_hash(
+                    self.expected_image_hash
+                )
                 if embedding:
                     return ("embedding", embedding)
             # Fall back to retrieving raw image bytes for backward compatibility
             if hasattr(self.image_storage_service, "get_image_bytes_by_hash"):
-                image_data = self.image_storage_service.get_image_bytes_by_hash(self.expected_image_hash)
+                image_data = self.image_storage_service.get_image_bytes_by_hash(
+                    self.expected_image_hash
+                )
                 if image_data:
                     return ("bytes", image_data)
         return None

@@ -1,9 +1,10 @@
 from datetime import datetime, timedelta
 
-from backend.models.base import LogBase
 from sqlalchemy import (Column, DateTime, Enum, ForeignKey, Integer, String,
                         func)
 from sqlalchemy.orm import relationship
+
+from backend.models.base import LogBase
 
 
 def now_local() -> datetime:

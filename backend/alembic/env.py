@@ -14,14 +14,15 @@ standard migrations apply.
 
 from __future__ import annotations
 
-import sys
 import importlib
 import pkgutil
-from pathlib import Path
+import sys
 from logging.config import fileConfig
+from pathlib import Path
+
+from sqlalchemy import engine_from_config, pool
 
 from alembic import context
-from sqlalchemy import engine_from_config, pool
 
 # Make sure project root is on sys.path.  ``env.py`` lives under
 # ``backend/alembic``, so the root project directory is two levels up.
@@ -36,13 +37,12 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
+# Import all model modules so that they register their tables with ``Base``.
+import backend.models as models_pkg
 # Import the unified Base for all models.  Previously the project used
 # separate ``LogBase`` and ``CoreBase`` classes.  Now both point to
 # the same ``Base``, so importing ``Base`` suffices.
 from backend.models.base import Base
-
-# Import all model modules so that they register their tables with ``Base``.
-import backend.models as models_pkg
 
 for _, module_name, is_pkg in pkgutil.iter_modules(models_pkg.__path__):
     if is_pkg:

@@ -10,10 +10,12 @@ class LoginRequest(BaseModel):
     email: str
     password: str
 
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str
-    admin_name: str  # 
+    admin_name: str  #
+
 
 # --- 2. ADMIN INFO  ---
 class AdminDisplay(BaseModel):
@@ -22,7 +24,8 @@ class AdminDisplay(BaseModel):
     last_name: str
     email: EmailStr
 
-    model_config = ConfigDict(from_attributes=True) # 
+    model_config = ConfigDict(from_attributes=True)  #
+
 
 # --- 3. WORKERS TABLE  ---
 class EmployeeBase(BaseModel):
@@ -30,17 +33,18 @@ class EmployeeBase(BaseModel):
     last_name: str
     email: EmailStr
     dismissed: bool = False
-    dismissal_date: Optional[date] = None  
+    dismissal_date: Optional[date] = None
     expiration_date: Optional[date] = None
     hire_date: datetime
-    
+
 
 class EmployeeCreate(EmployeeBase):
     first_name: str
     last_name: str
     email: EmailStr
-    hire_date: datetime     # <--- DODANE (Wymagane)
+    hire_date: datetime  # <--- DODANE (Wymagane)
     expiration_date: Optional[datetime]
+
 
 class EmployeeDisplay(EmployeeBase):
     id: int
@@ -48,10 +52,12 @@ class EmployeeDisplay(EmployeeBase):
     last_name: str
     email: EmailStr
     dismissed: bool
-    hire_date: date      # <--- DODANE
+    hire_date: date  # <--- DODANE
     expiration_date: Optional[date]
 
-    model_config = ConfigDict(from_attributes=True) 
+    model_config = ConfigDict(from_attributes=True)
+
+
 # --- 4. EDIT WORKER  ---
 class EmployeeUpdate(BaseModel):
     first_name: Optional[str] = None
@@ -60,11 +66,11 @@ class EmployeeUpdate(BaseModel):
     dismissed: Optional[bool] = None
     dismissal_date: Optional[date] = None
     expiration_date: Optional[date] = None
-    
+
 
 # --- 5. REPORTS QUERY  ---
 class ReportRequest(BaseModel):
-    employee_ids: Optional[List[int]] = None  
-    statuses: Optional[List[str]] = None      
+    employee_ids: Optional[List[int]] = None
+    statuses: Optional[List[str]] = None
     date_from: date
     date_to: date

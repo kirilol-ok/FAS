@@ -1,6 +1,7 @@
-from backend.models.base import CoreBase
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.orm import relationship
+
+from backend.models.base import CoreBase
 
 
 class Admins(CoreBase):

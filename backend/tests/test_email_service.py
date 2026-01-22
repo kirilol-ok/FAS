@@ -1,14 +1,15 @@
 import importlib
 import sys
-from io import BytesIO
 import types
+from io import BytesIO
+
 import pytest
 
-# The email_service module depends on external packages (qrcode and fastapi_mail)
-# that are not available in this execution environment.  To make the module
-# importable for testing we first insert dummy implementations into
-# ``sys.modules`` before importing it.  These dummies mimic just enough of the
-# original APIs for the service functions to operate without raising errors.
+# The email_service module depends on external packages (qrcode, fastapi and fastapi_mail)
+# that may not be available in the test environment.  To make the module
+# importable for testing we insert dummy implementations into sys.modules
+# before importing it.  These dummies mimic just enough of the original
+# APIs for the service functions to operate without raising errors.
 
 
 class DummyQRCodeImage:
@@ -23,10 +24,10 @@ class DummyQRCodeImage:
 
 
 class DummyQRCode:
-    """Simplified stand‑in for qrcode.QRCode.
-
-    This dummy stores the data passed to ``add_data`` and returns an object
-    whose ``save`` method writes a fixed byte sequence to the given buffer.
+    """
+    Simplified stand-in for qrcode.QRCode.  This dummy stores the data passed
+    to ``add_data`` and returns an object whose ``save`` method writes a fixed
+    byte sequence to the given buffer.
     """
 
     def __init__(self, *args, **kwargs) -> None:
@@ -39,8 +40,10 @@ class DummyQRCode:
         # no operation needed for dummy
         return None
 
-    def make_image(self, fill_color: str = "black", back_color: str = "white") -> DummyQRCodeImage:
-        # return an object capable of writing bytes to a file‑like buffer
+    def make_image(
+        self, fill_color: str = "black", back_color: str = "white"
+    ) -> DummyQRCodeImage:
+        # return an object capable of writing bytes to a file-like buffer
         return DummyQRCodeImage(b"FAKEPNG")
 
 
@@ -72,11 +75,23 @@ class DummyMessageSchema:
 
 class DummyMessageType:
     """Provides a single attribute ``html`` used by email_service."""
+
     html = "html"
 
+
 class DummyConnectionConfig:
+    """Stub for fastapi_mail.ConnectionConfig."""
+
     def __init__(self, **kwargs):
         self.kwargs = kwargs
+
+
+class DummyUploadFile:
+    """Simple replacement for fastapi.UploadFile used in attachments."""
+
+    def __init__(self, file: BytesIO, filename: str) -> None:
+        self.file = file
+        self.filename = filename
 
 
 @pytest.fixture(autouse=True)
@@ -86,10 +101,10 @@ def email_module(monkeypatch):
     dependencies patched.
 
     The email_service module is imported inside this fixture after installing
-    dummy qrcode and fastapi_mail modules into ``sys.modules``.  Each test
-    receives the reloaded module instance.
+    dummy qrcode, fastapi_mail and fastapi modules into ``sys.modules``.  Each
+    test receives the reloaded module instance.
     """
-    # install dummy qrcode and fastapi_mail modules before import
+    # install dummy qrcode, fastapi_mail and fastapi modules before import
     dummy_qrcode = types.SimpleNamespace(
         QRCode=DummyQRCode,
         constants=types.SimpleNamespace(ERROR_CORRECT_L=1),
@@ -100,10 +115,16 @@ def email_module(monkeypatch):
         MessageSchema=DummyMessageSchema,
         MessageType=DummyMessageType,
     )
+    dummy_fastapi = types.SimpleNamespace(
+        UploadFile=DummyUploadFile,
+    )
     monkeypatch.setitem(sys.modules, "qrcode", dummy_qrcode)
     monkeypatch.setitem(sys.modules, "fastapi_mail", dummy_fastapi_mail)
+    monkeypatch.setitem(sys.modules, "fastapi", dummy_fastapi)
     # reload the module so it picks up the dummy modules
-    email_mod = importlib.reload(importlib.import_module("backend.services.email_service"))
+    email_mod = importlib.reload(
+        importlib.import_module("backend.services.email_service")
+    )
     return email_mod
 
 
